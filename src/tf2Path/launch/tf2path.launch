@@ -1,5 +1,0 @@
-  <launch>
- 
-    <node pkg="tf2Path" type="tf2pathNode.py" 
-          name="tf2pathNode" />
-  </launch>
