@@ -1,0 +1,42 @@
+<launch>
+
+  <node pkg="collision_avoidance_base" type="collision_avoidance_base" name="coll_avoid" output="screen">
+      launch-prefix="xterm -e gdb --args"
+      <param name="radius" value="1.0" />
+
+      <remap from="~scans" to="/vrep/hokuyo"/>
+      <remap from="~cmd_vel" to="/teleop/cmd_vel"/>
+      <remap from="~output_vel" to="/vrep/twistCommand"/> -->
+  </node>
+
+  <node pkg="nodelet" type="nodelet" name="nodelet_manager" output="screen" respawn="false" args="manager"/>
+
+  <node pkg="nodelet" type="nodelet" name="depth_to_pc" args="load depth_image_proc/point_cloud_xyzrgb nodelet_manager" respawn="false">
+    <remap from="rgb/image_rect_color" to="/vrep/visionSensor"/>
+    <remap from="depth_registered/image_rect" to="/vrep/depthSensor_flipped"/>
+    <remap from="rgb/camera_info" to="/vrep/visionSensorInfo"/>
+  </node>
+
+
+  <node pkg="vrep4_helpers" type="image_flip" name="image_flip" output="screen">
+      <remap from="image" to="/vrep/depthSensor"/>
+      <remap from="image_flipped" to="/vrep/depthSensor_flipped"/>
+  </node>
+
+ <!-- joy node -->
+  <node respawn="true" pkg="joy"
+        type="joy_node" name="turtle_joy" >
+    <param name="dev" type="string" value="/dev/input/js0" />
+    <param name="deadzone" value="0.12" />
+    <param name="autorepeat_rate" value="10" />
+  </node>
+
+ <!-- Axes -->
+  <param name="axis_linear" value="1" type="int"/>
+  <param name="axis_angular" value="0" type="int"/>
+  <param name="scale_linear" value="0.5" type="double"/>
+  <param name="scale_angular" value="2" type="double"/>
+  <node pkg="homework1" type="robot_joy" name="teleop"/>
+
+
+</launch>

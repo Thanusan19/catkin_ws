@@ -1,0 +1,23 @@
+README
+
+Terminal1
+1/export alias by typing 'tb'
+5/rqt
+6/rviz --> display 'map topic' on Fixed Frame
+
+Terminal2 
+2/ssh tb01 (connect to the turtle bot)
+2/roscore
+3/roslaunch turtlebot_bringup minimal.launch
+4/roslaunch turtlebot_navigation gmapping_demo.launch
+7/rosrun turtlbot_teleop xbox360_teleop.launch
+
+
+writing tf listener python 
+ look at transform between Map and base link
+ receive a transform message (geometry_msgs/vector3 translation and rotation)--> rosmsgs show transform
+ we want to transform this in the path form --> rosmsgs show path 
+   (header, pose....)
+
+
+ 

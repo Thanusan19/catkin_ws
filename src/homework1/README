@@ -1,0 +1,23 @@
+					CS 7630 : HOMEWORK 1 
+
+NAME: SATHIAKUMAR Thanusan
+
+Process for C++ file:
+1/Launch roscore : $roscore
+2/Start the launch file : $roslaunch robot_joy.launch
+3/Launch the joy node: $rosrun joy joy_node
+  If you want to see the output of the the topic /joy : rostopic echo joy 
+4/Start V-rep : $cd /cs-share/pradalier/V-REP
+		$sh vrep.sh 
+  Choose the scene
+  Start simulation
+
+Process for python file:
+1/Launch roscore : $roscore
+2/Launch the joy node: $rosrun joy joy_node
+  If you want to see the output of the the topic /joy : rostopic echo joy
+3/Launch the node: $rosrun homework1 robot_joy.py 
+4/Start V-rep : $cd /cs-share/pradalier/V-REP
+		$sh vrep.sh 
+  Choose the scene
+  Start simulation
