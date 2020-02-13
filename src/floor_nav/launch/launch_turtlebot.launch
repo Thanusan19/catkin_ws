@@ -12,5 +12,9 @@
         <!-- <param name="reference_frame" value="map"/>-->
     </node>
 
+    <node pkg="face_detect_base" type="rosfacedetect.py" name="face_detect" output="screen">
+      <remap from="/face_detect/image" to="/camera/rgb/image_raw"/>
+    </node>
+
 </launch>
 

@@ -37,13 +37,15 @@ find_package(Boost REQUIRED COMPONENTS system)
 generate_dynamic_reconfigure_options(
   cfg/TaskGoTo.cfg
   cfg/TaskPlanTo.cfg
+  cfg/TaskStareAtFace.cfg
   cfg/TaskSetHeading.cfg
   cfg/TaskSetManual.cfg
   cfg/TaskWaitForAuto.cfg
   cfg/TaskWaitForROI.cfg
+  cfg/TaskWaitForFace.cfg
   cfg/TaskWander.cfg
-  cfg/TaskGoToPose.cfg
   cfg/TaskConstant.cfg
+  cfg/TaskGoToPose.cfg
   cfg/TaskAutoDock.cfg
 )
 
@@ -80,6 +82,8 @@ include_directories(
     include ${catkin_INCLUDE_DIRS}
 )
 
+add_definitions(-g -ggdb -Wall -O0)
+
 ## Declare a cpp library
 # add_library(floor_nav
 #   src/${PROJECT_NAME}/floor_nav.cpp
@@ -103,6 +107,10 @@ add_dependencies(task_server ${${PROJECT_NAME}_EXPORTED_TARGETS})
 
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CATKIN_DEVEL_PREFIX}/${CATKIN_PACKAGE_SHARE_DESTINATION}/tasks)
 # Now compile the tasks independently
+
+ADD_LIBRARY( TaskStareAtFace SHARED tasks/TaskStareAtFace.cpp)
+TARGET_LINK_LIBRARIES(TaskStareAtFace ${catkin_LIBRARIES} dl)
+add_dependencies(TaskStareAtFace ${${PROJECT_NAME}_EXPORTED_TARGETS})
 
 ADD_LIBRARY( TaskSetHeading SHARED tasks/TaskSetHeading.cpp)
 TARGET_LINK_LIBRARIES(TaskSetHeading ${catkin_LIBRARIES} dl)
@@ -131,6 +139,10 @@ add_dependencies(TaskSetManual ${${PROJECT_NAME}_EXPORTED_TARGETS})
 ADD_LIBRARY( TaskWaitForROI SHARED tasks/TaskWaitForROI.cpp)
 TARGET_LINK_LIBRARIES(TaskWaitForROI ${catkin_LIBRARIES} dl)
 add_dependencies(TaskWaitForROI ${${PROJECT_NAME}_EXPORTED_TARGETS})
+
+ADD_LIBRARY( TaskWaitForFace SHARED tasks/TaskWaitForFace.cpp)
+TARGET_LINK_LIBRARIES(TaskWaitForFace ${catkin_LIBRARIES} dl)
+add_dependencies(TaskWaitForFace ${${PROJECT_NAME}_EXPORTED_TARGETS})
 
 ADD_LIBRARY( TaskWander SHARED tasks/TaskWander.cpp)
 TARGET_LINK_LIBRARIES(TaskWander ${catkin_LIBRARIES} dl)

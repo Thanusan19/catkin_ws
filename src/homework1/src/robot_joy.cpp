@@ -13,7 +13,7 @@ private:
 
   ros::NodeHandle nh_;
 
-  int linear_, angular_;
+  int linear_,lineary_, angular_;
   double l_scale_, a_scale_;
   ros::Publisher vel_pub_vrep;
   ros::Subscriber joy_sub_;
@@ -23,6 +23,7 @@ private:
 
 TeleopTurtle::TeleopTurtle():
   linear_(1),
+  lineary_(5),
   angular_(2)
 {
 
@@ -41,7 +42,7 @@ void TeleopTurtle::joyCallback(const sensor_msgs::Joy::ConstPtr& joy)
   geometry_msgs::Twist twist;
   twist.angular.z = a_scale_*joy->axes[angular_];
   twist.linear.x = l_scale_*joy->axes[linear_];
-  //twist.linear.y = l_scale_*joy->axes[linear_];
+  twist.linear.y = l_scale_*joy->axes[lineary_]; // ajoute homework 4
 
   vel_pub_vrep.publish(twist);
 }

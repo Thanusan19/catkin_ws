@@ -15,19 +15,26 @@ class Landmark:
         # Initialise a landmark based on measurement Z, 
         # current position X and uncertainty R
         # TODO
-		Rtheta = mat([[cos(theta), -sin(theta), 0], 
-			[sin(theta),  cos(theta), 0],
-			[         0,           0, 1]]);
-        Zw=numpy.matmul(RthetaZ,Z)
-        self.L=X+Zw
-        #self.L =vstack([0,0])
-        self.P =mat([[0,0],[0,0]])
+        theta = X[2,0]
+        R = self.getRotation(-theta)
+        Xpos = mat([[X[0,0]],[X[1,0]]])
+
+        self.L =vstack([0,0])
+        # self.P =mat([[0,0],[0,0]])   
+        self.L= numpy.matmul(R,Z) + Xpos
+
 
     def update(self,Z, X, R):
         # Update the landmark based on measurement Z, 
         # current position X and uncertainty R
         # TODO
         return
+
+    def getRotation(self, theta):
+        R = mat(zeros((2,2)))
+        R[0,0] = cos(theta); R[0,1] = -sin(theta)
+        R[1,0] = sin(theta); R[1,1] = cos(theta)
+        return R
         
 
 
@@ -41,18 +48,20 @@ class MappingKF:
         self.lock.acquire()
         print "Update: Z="+str(Z.T)+" X="+str(X.T)+" Id="+str(Id)
         R = mat(diag([uncertainty,uncertainty]))
+        # print(X.shape)
+        # print(Z.shape)
+        
+        if Id in self.marker_list:
+            self.marker_list[Id].update(Z=Z,X=X,R=uncertainty)
+        else:
+            self.marker_list[Id]=Landmark(Z=Z,X=X,R=uncertainty)
+        
         # Take care of the landmark Id observed as Z from X
         # self.marker_list is expected to be a dictionary of Landmark
         # such that current landmark can be retrieved as self.marker_list[Id] 
         # At initialisation, self.marker_list is empty
         # TODO
-        if id in self.marker_list:
-			marker_list[id].update(Z, X , uncertainty)
-        else:
-			landmark=Landmark()
-			marker_list[id]=landmark(Z, X , uncertainty)
-			
-			
+
         self.lock.release()
 
 

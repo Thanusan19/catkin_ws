@@ -65,6 +65,8 @@ class RoverKinematics:
                 
         return motors
 
+
+        # pour le homework 5 (save some computing ressources)
     def integrate_odometry(self, motor_state, drive_cfg):
         # The first time, we need to initialise the state
         if self.first_run:
@@ -85,6 +87,8 @@ class RoverKinematics:
             angle = (motor_state.drive[k]-self.motor_state.drive[k])
             if angle < -pi:
                 angle=angle+2*pi
+            if  angle > pi:
+                angle=angle-2*pi
                                     #fmod((motor_state.drive[k]-self.motor_state.drive[k])+pi, 2 * pi) - pi
             s = drive_cfg[k].radius * angle
             A[i,:]=[1,0,- drive_cfg[k].y ]        

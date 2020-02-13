@@ -4,15 +4,20 @@
 #include <ros/ros.h>
 #include "task_manager_lib/TaskDefinition.h"
 #include "std_msgs/String.h"
+#include "std_msgs/Header.h"                                                                         //a voir
 #include "geometry_msgs/Twist.h"
 #include "geometry_msgs/Pose.h"
 #include "geometry_msgs/Pose2D.h"
 #include "geometry_msgs/PoseStamped.h"
 #include "sensor_msgs/LaserScan.h"
+#include "sensor_msgs/LaserScan.h"
+#include "face_detect_base/TabROI.h"                                                                         //a voir
+#include "sensor_msgs/RegionOfInterest.h"                                                                   //a voir
 #include "pcl_ros/point_cloud.h"
 #include "pcl/point_types.h"
 #include <tf/transform_listener.h>
 #include <tf/transform_datatypes.h>
+
 
 namespace floor_nav {
     class SimTasksEnv: public task_manager_lib::TaskEnvironment
@@ -23,23 +28,27 @@ namespace floor_nav {
             ros::Subscriber pointCloudSub;
             ros::Subscriber pointCloud2DSub;
             ros::Subscriber laserscanSub;
+	        ros::Subscriber face_detectedSub;                                                              //a voir
             ros::Publisher velPub;
             ros::ServiceClient muxClient;
             tf::TransformListener listener;
 
-            void muxCallback(const std_msgs::String::ConstPtr& msg) ;
+            void muxCallback(const std_msgs::String::ConstPtr& msg);
 
             void pointCloudCallback(const sensor_msgs::PointCloud2ConstPtr msg) ;
             void pointCloud2DCallback(const sensor_msgs::PointCloud2ConstPtr msg) ;
             void laserScanCallback(const sensor_msgs::LaserScanConstPtr msg) ;
-
+            void face_detectedCallback(const face_detect_base::TabROIConstPtr msg); //je ne sais pas si le type de message est bon
             bool manualControl;
             std::string joystick_topic;
+            std::string face_detected;                                                          //a voir
             std::string auto_topic;
             std::string base_frame;
             std::string reference_frame;
             pcl::PointCloud<pcl::PointXYZ> pointCloud;
             pcl::PointCloud<pcl::PointXYZ> pointCloud2D;
+            std::vector<sensor_msgs::RegionOfInterest> face_detected_tab;                              //a voir
+            std_msgs::Header header_ROI;
 
         public:
             SimTasksEnv(ros::NodeHandle & nh);
@@ -47,7 +56,10 @@ namespace floor_nav {
 
             ros::NodeHandle & getNodeHandle() {return nh;}
 
-            geometry_msgs::Pose2D getPose2D() const ; 
+            geometry_msgs::Pose2D getPose2D() const ;
+
+            const std::vector<sensor_msgs::RegionOfInterest> getface_detected() const;                                  //a voir
+            const std_msgs::Header getface_Age() const;
 
             geometry_msgs::Pose getPose() const ;
 

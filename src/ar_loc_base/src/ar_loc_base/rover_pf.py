@@ -52,12 +52,12 @@ class RoverPF(RoverKinematics):
         # TODO
 
         tmp=[]
-        for particle in self.particles: # a voir les bornes
+        for particle in self.particles:   # a voir les bornes
             theta = particle[2,0]
             Rtheta = mat([[cos(theta), -sin(theta), 0], 
                         [sin(theta),  cos(theta), 0],
                         [         0,           0, 1]]);
-            DeltaX = numpy.matmul(iW,S)+self.drawNoise(encoder_precision)  # ajoute du bruit sur S sachant que S c'est le deplacement et encoder_precision  precision de l'encoder 
+            DeltaX = numpy.matmul(iW,S)+self.drawNoise(encoder_precision)    # ajoute du bruit sur S sachant que S c'est le deplacement et encoder_precision  precision de l'encoder 
             tmp.append(particle+Rtheta*DeltaX)
         self.particles = tmp
  
@@ -77,18 +77,18 @@ class RoverPF(RoverKinematics):
         randindex = range(0,self.N,1)
         temp = numpy.zeros(self.N)
 
-        for i in range(0,self.N,1): # a voir les bornes
+        for i in range(0,self.N,1):                                                                                                                                               # a voir les bornes
             hi = [[L[0,0]-self.particles[i][0,0]],[L[1,0]-self.particles[i][1,0]]]
             theta = self.particles[i][2,0]
             Rthetaminus = self.getRotation(-theta)
             hr = numpy.matmul(Rthetaminus,hi)
-            normesq = ((Z[0,0]-hr[0,0]) * (Z[0,0]-hr[0,0])) + ((Z[1,0]-hr[1,0]) * (Z[1,0]-hr[1,0]))     #norme au carre 
+            normesq = ((Z[0,0]-hr[0,0]) * (Z[0,0]-hr[0,0])) + ((Z[1,0]-hr[1,0]) * (Z[1,0]-hr[1,0]))                                                                          #norme au carre 
             w[i]=math.exp(-normesq/Uncertainty)
             # self.particles = ...
 
         w=w/numpy.sum(w) # normalization
         index = random.choice( a = randindex ,p=w,size=self.N)
-        new_particles =[ self.particles[i] for i in index ]
+        new_particles = [ self.particles[i] for i in index ]
         self.particles = new_particles
         # self.particles=temp
 

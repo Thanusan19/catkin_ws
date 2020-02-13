@@ -6,12 +6,13 @@
 using namespace floor_nav;
 
 SimTasksEnv::SimTasksEnv(ros::NodeHandle & n) : task_manager_lib::TaskEnvironment(n),
-    paused(false), manualControl(true), joystick_topic("/teleop/twistCommand"), auto_topic("/mux/autoCommand"), base_frame("/bubbleRob"), reference_frame("/world")
+    paused(false), manualControl(true), joystick_topic("/teleop/twistCommand"), auto_topic("/mux/autoCommand"), base_frame("/bubbleRob"), reference_frame("/world"), face_detected("/RegionOfInterest")
 {
     nh.getParam("joystick_topic",joystick_topic);
     nh.getParam("auto_topic",auto_topic);
     nh.getParam("base_frame",base_frame);
     nh.getParam("reference_frame",reference_frame);
+    nh.getParam("/RegionOfInterest",face_detected);                                                               //a voir
 
     muxClient = nh.serviceClient<topic_tools::MuxSelect>("/mux/select");
 
@@ -19,6 +20,7 @@ SimTasksEnv::SimTasksEnv(ros::NodeHandle & n) : task_manager_lib::TaskEnvironmen
     pointCloudSub = nh.subscribe("/vrep/depthSensor",1,&SimTasksEnv::pointCloudCallback,this);
     pointCloud2DSub = nh.subscribe("/vrep/hokuyoSensor",1,&SimTasksEnv::pointCloud2DCallback,this);
     laserscanSub = nh.subscribe("/scan",1,&SimTasksEnv::laserScanCallback,this);
+    face_detectedSub = nh.subscribe("/RegionOfInterest",1,&SimTasksEnv::face_detectedCallback,this);            // a voir
     velPub = nh.advertise<geometry_msgs::Twist>(auto_topic,1);
 }
 
@@ -89,6 +91,17 @@ geometry_msgs::PoseStamped SimTasksEnv::getPoseStamped() const {
     return pose;
 }
 
+const std::vector<sensor_msgs::RegionOfInterest>  SimTasksEnv::getface_detected() const {
+    return face_detected_tab;                                       // a voir
+}
+
+const std_msgs::Header  SimTasksEnv::getface_Age() const {
+     return header_ROI;                                       // a voir
+ }
+
+
+
+
 void SimTasksEnv::publishVelocity(double linear, double angular) {
     geometry_msgs::Twist cmd;
     if (paused) {
@@ -143,6 +156,11 @@ void SimTasksEnv::pointCloudCallback(const sensor_msgs::PointCloud2ConstPtr msg)
 
 void SimTasksEnv::pointCloud2DCallback(const sensor_msgs::PointCloud2ConstPtr msg) {
     pcl::fromROSMsg(*msg, pointCloud2D);
+}
+
+void SimTasksEnv::face_detectedCallback(const face_detect_base::TabROIConstPtr msg) {
+        face_detected_tab = msg -> my_roi_tab;                                                                   // a voir
+        header_ROI = msg -> header;  
 }
 
 void SimTasksEnv::laserScanCallback(const sensor_msgs::LaserScanConstPtr msg) {

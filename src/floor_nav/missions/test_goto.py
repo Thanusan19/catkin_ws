@@ -11,21 +11,21 @@ default_period = rospy.get_param("~period",0.05)
 tc = TaskClient(server_node,default_period)
 rospy.loginfo("Mission connected to server: " + server_node)
 
-scalex=0.1
-scaley=0.2
-vel=0.3
+scalex=4
+scaley=0
+vel=1
 
 tc.WaitForAuto()
 try:
     tc.GoTo(goal_x=scalex,goal_y=scaley,max_velocity=vel,Holonomic=True)
     tc.Wait(duration=1.0)
-    # ~ tc.GoTo(goal_x=-scale,goal_y=scale,max_velocity=vel,Holonomic=True)
-    # ~ tc.Wait(duration=1.0)
-    # ~ tc.GoTo(goal_x=scale,goal_y=scale,max_velocity=vel,Holonomic=True)
-    # ~ tc.Wait(duration=1.0)
-    # ~ tc.GoTo(goal_x=scale,goal_y=-scale,max_velocity=vel,Holonomic=True)
-    # ~ tc.Wait(duration=1.0)
-    # ~ tc.GoTo(goal_x=-scale,goal_y=-scale,max_velocity=vel,Holonomic=True)
+    # tc.GoTo(goal_x=1,goal_y=1,max_velocity=vel,Holonomic=True)
+    # tc.Wait(duration=1.0)
+    # tc.GoTo(goal_x=scalex,goal_y=-scaley,max_velocity=vel,Holonomic=True)
+    # tc.Wait(duration=1.0)
+    # tc.GoTo(goal_x=-scalex,goal_y=-scaley,max_velocity=vel,Holonomic=True)
+    # tc.Wait(duration=1.0)
+    # tc.GoTo(goal_x=scalex,goal_y=scaley,max_velocity=vel,Holonomic=True)
 
 except TaskException, e:
     rospy.logerr("Exception caught: " + str(e))

@@ -50,40 +50,34 @@ if __name__ == '__main__':
     def detect_and_draw(imgmsg):
         img = br.imgmsg_to_cv2(imgmsg, "bgr8")
 	msg = TabROI()
+        msg.header = imgmsg.header
         msg.my_roi_tab = []
-	
- 
         # allocate temporary images
         gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
         faces = face_cascade.detectMultiScale(gray, 1.3, 3)
         for (x,y,w,h) in faces:
             cv2.rectangle(img,(x,y),(x+w,y+h),(255,0,0),2)
-
-    	    coordinate = RegionOfInterest()		
+            coordinate = RegionOfInterest()		
 	    coordinate.x_offset = x
 	    coordinate.y_offset = y
 	    coordinate.height = h
 	    coordinate.width = w
 	    msg.my_roi_tab.append(coordinate)
-
-
             roi_gray = gray[y:y+h, x:x+w]
             roi_color = img[y:y+h, x:x+w]
             eyes = eye_cascade.detectMultiScale(roi_gray)
             for (ex,ey,ew,eh) in eyes:
-                cv2.rectangle(roi_color,(ex,ey),(ex+ew,ey+eh),(0,255,0),2)
-
-       	    
-	rospy.loginfo(msg)
-        cv2.imshow('img',img)
+            	cv2.rectangle(roi_color,(ex,ey),(ex+ew,ey+eh),(0,255,0),2)
+        pub.publish(msg)
+    	cv2.imshow('img',img)
 
 	if msg.my_roi_tab:
 
 		img2 = br.cv2_to_imgmsg(img, "bgr8")
-		rospy.loginfo(img2)
 		pub1.publish(img2)
 
         cv2.waitKey(10)
+    
 	
         
 
