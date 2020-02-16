@@ -41,9 +41,17 @@ class RoverKF(RoverKinematics):
         # Implement Kalman prediction here
         # TODO
 
-        # ultimately : 
-        # self.X =  
-        # self.P = 
+        # ultimately :
+        X= self.X
+        P= self.P
+        Q= vstack(([encoder_precision*encoder_precision,0,0],[0,encoder_precision*encoder_precision,0],[0,0,encoder_precision*encoder_precision]))
+        A= identity(3)
+        DeltaX = numpy.matmul(iW,S) 
+        
+        
+        self.X = matmul(A,X) + DeltaX
+        self.P = matmul(matmul(A,P),transpose(A)) + Q
+       
 
         self.lock.release()
 
@@ -52,6 +60,13 @@ class RoverKF(RoverKinematics):
         print "Update: L="+str(L.T)+" X="+str(self.X.T)
         # Implement kalman update using landmarks here
         # TODO
+
+        X= self.X
+        P= self.P
+
+        #Compute the Kalman Gain
+        
+
         # self.X = 
         # self.P = 
         self.lock.release()

@@ -16,7 +16,7 @@ class Landmark:
         # current position X and uncertainty R
         # TODO
         theta = X[2,0]
-        Rot = self.getRotation(-theta)
+        Rot = self.getRotation(theta)
         # Xpos = mat([[X[0,0]],[X[1,0]]])
 
         self.L = vstack([0,0])   
@@ -24,7 +24,7 @@ class Landmark:
 
         R2 = R*R
         
-        self.P = mat([[0,0],[0,0]])
+       
         self.P = mat([[R2,R2],[R2,R2]])
 
 
@@ -35,7 +35,12 @@ class Landmark:
         # TODO
         P=self.P
         L=self.L
-        H=vstack(([1,0],[0,1]))
+        
+        theta = X[2,0]
+        H= self.getRotation(-theta)
+   
+       
+
         HT=transpose(H)
         R=vstack(([R,0],[0,R]))
         
@@ -47,7 +52,7 @@ class Landmark:
         KG=matmul(Exp1,linalg.inv(Sum))
 
         #Update estimate with measurement zk
-        diffMeasureEstimate = Z - matmul(H,L)
+        diffMeasureEstimate = Z - matmul(H,L-X[0:2])
         measurementWeight=matmul(KG,diffMeasureEstimate)
 
         self.L= L + measurementWeight
@@ -55,6 +60,9 @@ class Landmark:
         #Update the error covariance
         covarianceWeight= identity(2)-matmul(KG,H)
         self.P= matmul(covarianceWeight,P)
+
+        print(X[2,0])
+      
 
         return
 
@@ -77,8 +85,8 @@ class MappingKF:
         print "Update: Z="+str(Z.T)+" X="+str(X.T)+" Id="+str(Id)
         R = mat(diag([uncertainty,uncertainty]))
         # print(X.shape)
-        print(X[0:2].shape)
-    
+        # print(X[0:2].shape)
+        print(uncertainty)
 
         if Id in self.marker_list:
             self.marker_list[Id].update(Z=Z,X=X,R=uncertainty)
