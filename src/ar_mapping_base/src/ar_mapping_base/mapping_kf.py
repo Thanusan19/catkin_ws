@@ -16,18 +16,25 @@ class Landmark:
         # current position X and uncertainty R
         # TODO
         theta = X[2,0]
-        R = self.getRotation(-theta)
-        Xpos = mat([[X[0,0]],[X[1,0]]])
+        Rot = self.getRotation(-theta)
+        # Xpos = mat([[X[0,0]],[X[1,0]]])
 
-        self.L =vstack([0,0])
-        # self.P =mat([[0,0],[0,0]])   
-        self.L= numpy.matmul(R,Z) + Xpos
+        self.L = vstack([0,0])   
+        self.L = numpy.matmul(Rot,Z) + X[0:2] #Xpos
+
+        R2 = R*R
+        
+        self.P = mat([[0,0],[0,0]])
+        self.P = mat([[R2,R2],[R2,R2]])
+
 
 
     def update(self,Z, X, R):
         # Update the landmark based on measurement Z, 
         # current position X and uncertainty R
         # TODO
+
+        
         return
 
     def getRotation(self, theta):
@@ -49,8 +56,9 @@ class MappingKF:
         print "Update: Z="+str(Z.T)+" X="+str(X.T)+" Id="+str(Id)
         R = mat(diag([uncertainty,uncertainty]))
         # print(X.shape)
-        # print(Z.shape)
-        
+        print(X[0:2].shape)
+    
+
         if Id in self.marker_list:
             self.marker_list[Id].update(Z=Z,X=X,R=uncertainty)
         else:
