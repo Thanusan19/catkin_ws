@@ -55,8 +55,7 @@ class MappingKF:
         self.lock.acquire()
         print "Update: Z="+str(Z.T)+" X="+str(X.T)+" Id="+str(Id)
         R = mat(diag([uncertainty,uncertainty]))
-        # print(X.shape)
-        print(X[0:2].shape)
+        # print(X[0:2].shape)
     
 
         if Id in self.marker_list:
