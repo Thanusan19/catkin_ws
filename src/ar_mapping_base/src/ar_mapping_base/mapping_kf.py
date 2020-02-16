@@ -33,8 +33,29 @@ class Landmark:
         # Update the landmark based on measurement Z, 
         # current position X and uncertainty R
         # TODO
-
+        P=self.P
+        L=self.L
+        H=vstack(([1,0],[0,1]))
+        HT=transpose(H)
+        R=vstack(([R,0],[0,R]))
         
+        #Compute Kalman Gain
+        Exp1=matmul(P,HT)
+        Exp2=matmul(matmul(H,P),HT)
+        Sum=Exp2 + R
+
+        KG=matmul(Exp1,linalg.inv(Sum))
+
+        #Update estimate with measurement zk
+        diffMeasureEstimate = Z - matmul(H,L)
+        measurementWeight=matmul(KG,diffMeasureEstimate)
+
+        self.L= L + measurementWeight
+
+        #Update the error covariance
+        covarianceWeight= identity(2)-matmul(KG,H)
+        self.P= matmul(covarianceWeight,P)
+
         return
 
     def getRotation(self, theta):
