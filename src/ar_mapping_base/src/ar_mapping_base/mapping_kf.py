@@ -32,11 +32,13 @@ class Landmark:
         # Update the landmark based on measurement Z, 
         # current position X and uncertainty R
         # TODO
+
         P=self.P
         L=self.L
         
         theta = X[2,0]
-        H= self.getRotation(-theta)
+        temp = self.getRotation(theta)
+        H = linalg.inv(temp)
    
        
 
@@ -59,8 +61,6 @@ class Landmark:
         #Update the error covariance
         covarianceWeight= identity(2)-matmul(KG,H)
         self.P= matmul(covarianceWeight,P)
-
-        print(X[2,0])
       
 
         return

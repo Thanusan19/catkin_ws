@@ -75,13 +75,14 @@ class RoverKF(RoverKinematics):
         
         X= self.X
         P= self.P
-        R=pow(uncertainty,2)*identity(3)
 
-        theta = -X[2,0]
-        Rtheta = mat([[cos(theta), -sin(theta), 0], 
-                     [sin(theta),  cos(theta), 0],
-                     [         0,           0, 1]])
-        H=-Rtheta
+        R=pow(uncertainty,2)*identity(2)
+
+        theta = X[2,0]
+
+        H = mat([[-cos(theta), -sin(theta), (-sin(theta)*(L[0,0]-X[0,0])+cos(theta)*(L[1,0]-X[1,0]))], 
+                     [sin(theta),  -cos(theta), (-cos(theta)*(L[0,0]-X[0,0])-sin(theta)*(L[1,0]-X[1,0]))]])
+
         HT=transpose(H)
 
         #Compute the Kalman Gain
@@ -91,13 +92,10 @@ class RoverKF(RoverKinematics):
         invSum=linalg.inv(Sum)   
         KG=matmul(Exp1,invSum)
 
-        Z=[Z[0,0],Z[1,0],0]
-        L=[L[0,0],L[1,0],0]
-       
-        print(L)
-        print(Z)
 
-        self.X = X + matmul(KG,Z-matmul(Rtheta,L-X))
+        Rtheta=self.getRotation(-theta)
+        
+        self.X = X + matmul(KG,Z-matmul(Rtheta,L-X[0:2,0]))
         self.P = matmul(identity(3)-matmul(KG,H),P)
         
         self.lock.release()
