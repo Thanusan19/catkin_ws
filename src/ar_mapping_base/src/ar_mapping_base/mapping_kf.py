@@ -33,11 +33,13 @@ class Landmark:
         # Update the landmark based on measurement Z, 
         # current position X and uncertainty R
         # TODO
+
         P=self.P
         L=self.L
         
         theta = X[2,0]
-        H= self.getRotation(-theta)
+        temp = self.getRotation(theta)
+        H = linalg.inv(temp)
    
        
 
@@ -60,8 +62,6 @@ class Landmark:
         #Update the error covariance
         covarianceWeight= identity(2)-matmul(KG,H)
         self.P= matmul(covarianceWeight,P)
-
-        print(X[2,0])
       
 
         return
@@ -84,14 +84,6 @@ class MappingKF:
         self.lock.acquire()
         print "Update: Z="+str(Z.T)+" X="+str(X.T)+" Id="+str(Id)
         R = mat(diag([uncertainty,uncertainty]))
-<<<<<<< HEAD
-        # print(X.shape)
-        # print(X[0:2].shape)
-        print(uncertainty)
-=======
-        # print(X[0:2].shape)
-    
->>>>>>> 0ed7558cdc38b923c63bdd88fbede012ad506c1c
 
         if Id in self.marker_list:
             self.marker_list[Id].update(Z=Z,X=X,R=uncertainty)

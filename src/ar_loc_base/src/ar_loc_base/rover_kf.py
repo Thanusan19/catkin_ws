@@ -44,14 +44,26 @@ class RoverKF(RoverKinematics):
         # ultimately :
         X= self.X
         P= self.P
-        Q= vstack(([encoder_precision*encoder_precision,0,0],[0,encoder_precision*encoder_precision,0],[0,0,encoder_precision*encoder_precision]))
-        A= identity(3)
-        DeltaX = numpy.matmul(iW,S) 
+      
+        theta = X[2,0]
+        Rtheta = mat([[cos(theta), -sin(theta), 0], 
+                     [sin(theta),  cos(theta), 0],
+                     [         0,           0, 1]]);
+
+        odoRobotFrame=matmul(iW,S)
+        A= [[1,0,-sin(theta)*odoRobotFrame[0,0]-cos(theta)*odoRobotFrame[1,0]],[0,1,cos(theta)*odoRobotFrame[0,0]-sin(theta)*odoRobotFrame[1,0]],[0,0,1]]
+        AT=transpose(A)
+
+        B=matmul(Rtheta,iW)
+        BT=transpose(B)
         
+        Qu=matmul(S,transpose(S))
+        Q= pow(10,-4)*identity(3)
+     
+        odoWorldFrame=matmul(Rtheta,odoRobotFrame)
         
-        self.X = matmul(A,X) + DeltaX
-        self.P = matmul(matmul(A,P),transpose(A)) + Q
-       
+        self.X = X + odoWorldFrame
+        self.P = dot(A,dot(P,AT)) + dot(B,dot(Qu,BT)) + Q
 
         self.lock.release()
 
@@ -60,15 +72,29 @@ class RoverKF(RoverKinematics):
         print "Update: L="+str(L.T)+" X="+str(self.X.T)
         # Implement kalman update using landmarks here
         # TODO
-
+        
         X= self.X
         P= self.P
+        R=pow(uncertainty,2)*identity(2)
+
+        theta = X[2,0]
+
+        H = mat([[-cos(theta), -sin(theta), (-sin(theta)*(L[0,0]-X[0,0])+cos(theta)*(L[1,0]-X[1,0]))], 
+                     [sin(theta),  -cos(theta), (-cos(theta)*(L[0,0]-X[0,0])-sin(theta)*(L[1,0]-X[1,0]))]])
+        HT=transpose(H)
 
         #Compute the Kalman Gain
-        
+        Exp1= matmul(P,HT)
+        Sum= matmul(H,matmul(P,HT)) + R
+       
+        invSum=linalg.inv(Sum)   
+        KG=matmul(Exp1,invSum)
 
-        # self.X = 
-        # self.P = 
+        Rtheta=self.getRotation(-theta)
+        
+        self.X = X + matmul(KG,Z-matmul(Rtheta,L-X[0:2,0]))
+        self.P = matmul(identity(3)-matmul(KG,H),P)
+        
         self.lock.release()
 
     def update_compass(self, Z, uncertainty):
