@@ -22,7 +22,7 @@ class MappingKF(RoverKinematics):
         self.idx = {}
         self.pose_pub = rospy.Publisher("~pose",PoseStamped,queue_size=1)
         self.marker_pub = rospy.Publisher("~landmarks",MarkerArray,queue_size=1)
-
+        self.counter=3
     def getRotation(self, theta):
         R = mat(zeros((2,2)))
         R[0,0] = cos(theta); R[0,1] = -sin(theta)
@@ -79,8 +79,8 @@ class MappingKF(RoverKinematics):
         # homework), but we only need to deal with a subset of the state:
         # TODO
 
-        X= self.X
-        P= self.P
+        X= self.X[0:3,0]
+        P= self.P[0:3,0:3]
       
         theta = X[2,0]
         Rtheta = mat([[cos(theta), -sin(theta), 0], 
@@ -95,7 +95,7 @@ class MappingKF(RoverKinematics):
         BT=transpose(B)
         
         Qu=matmul(S,transpose(S))
-        Q= pow(10,-4)*identity(3)
+        Q= pow(encoder_precision,2)*identity(3)
      
         odoWorldFrame=matmul(Rtheta,odoRobotFrame)
         
@@ -116,17 +116,84 @@ class MappingKF(RoverKinematics):
         # Update the full state self.X and self.P based on landmark id
         # be careful that this might be the first time that id is observed
         # TODO
-        print(id)
+        X=self.X
+        Xprevious=self.X
+
         if id in self.idx:
             #self.idx[id].update(Z=Z,X=self.X,R=uncertainty)
-            self.idx[id]=0
+            # self.idx[id]=0
+            n = len(self.idx)
+            P=self.P
+            theta = X[2,0]
+            R=pow(uncertainty,2)*identity(2)
+            L=X[self.idx[id]:self.idx[id]+2]
+            print(L)
+
+            Hrobot = mat([[-cos(theta), -sin(theta), (-sin(theta)*(L[0,0]-X[0,0])+cos(theta)*(L[1,0]-X[1,0]))], 
+                     [sin(theta),  -cos(theta), (-cos(theta)*(L[0,0]-X[0,0])-sin(theta)*(L[1,0]-X[1,0]))]])
+            Hland= mat([[cos(theta),sin(theta)],[-sin(theta),cos(theta)]])
+            Hzeros=numpy.zeros((2,(self.idx[id]-3)))
+            HzerosEnd=numpy.zeros((2,(3+2*len(self.idx))-(3+(self.idx[id]-3)+2)))
+            H=hstack((Hrobot,Hzeros,Hland,HzerosEnd))
+
+            #Kalman Filter
+            sum=matmul(H,matmul(P,transpose(H))) + R
+            sumInv=linalg.inv(sum)
+            KG=matmul(P,matmul(transpose(H),sumInv))
+
+            #Calculation of covariance matrix
+            Ptmp=matmul((identity(P.shape[0])-matmul(KG,H)),P)
+
+            #Calculation of X
+            Zpred= matmul(self.getRotation(-theta),(L-X[0:2,0]))
+            Xtmp= X + matmul(KG,(Z-Zpred)) 
+
+            print(KG.shape)
+
         else:
-            #self.idx[id]=Landmark(Z=Z,X=self.X,R=uncertainty)
-            self.idx[id]=0
+            theta = X[2,0]
+            L= matmul(self.getRotation(theta),Z) + X[0:2,0]
 
+            n= len(self.idx)
+            Jrobot=mat([[1,0,-sin(theta)*Z[0,0]-cos(theta)*Z[1,0]],[0,1,cos(theta)*Z[0,0]-sin(theta)*Z[1,0]]])
+            Jzeros=zeros((2,n*2))
+            #Jland=self.getRotation(theta)
+            J=hstack((Jrobot,Jzeros)) #,Jland
 
-        # self.X = ...
-        # self.P = ...
+            Rtheta=self.getRotation(theta)
+            R=pow(uncertainty,2)*identity(2)
+            S= matmul(Rtheta,matmul(R,transpose(Rtheta))) + matmul(J,matmul(self.P,transpose(J))) 
+
+            Ptmp=zeros((self.P.shape[0]+2,self.P.shape[1]+2))
+            Ptmp[0:self.P.shape[0],0:self.P.shape[1]]=self.P
+            Ptmp[self.P.shape[0]:,self.P.shape[1]:]=S
+            
+            print(n)
+            print(J.shape)
+            print(Jzeros)
+            print(self.P.shape)
+            print(transpose(J).shape)
+
+            #H=numpy.zeros(2,3+2*n)
+            #Hrobot = mat([[-cos(theta), -sin(theta), (-sin(theta)*(L[0,0]-X[0,0])+cos(theta)*(L[1,0]-X[1,0]))], 
+            #          [sin(theta),  -cos(theta), (-cos(theta)*(L[0,0]-X[0,0])-sin(theta)*(L[1,0]-X[1,0]))]])
+            # Hland= mat([[cos(theta),sin(theta)],[-sin(theta),cos(theta)]])
+            # Hzeros=numpy.zeros(2,n-5)
+            # H=hstack((Hrobot,Hzeros,Hland))
+
+            # P=numpy.zeros(2,3+2*n)
+            # P[0:3,0:3]=P0
+            # P[3:3+2*n,0:3]
+
+            X= vstack((X,L)) 
+            self.idx[id]=self.counter
+            self.counter+=2
+
+            self.P=Ptmp
+            self.X=X
+
+        
+        
         self.lock.release()
         return (self.X,self.P)
 
