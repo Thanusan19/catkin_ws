@@ -117,7 +117,7 @@ class MappingKF(RoverKinematics):
         # be careful that this might be the first time that id is observed
         # TODO
         X=self.X
-        Xprevious=self.X
+    
 
         if id in self.idx:
             #self.idx[id].update(Z=Z,X=self.X,R=uncertainty)
@@ -146,45 +146,36 @@ class MappingKF(RoverKinematics):
 
             #Calculation of X
             Zpred= matmul(self.getRotation(-theta),(L-X[0:2,0]))
-            Xtmp= X + matmul(KG,(Z-Zpred)) 
+            Xtmp= X + matmul(KG,(Z-Zpred))
+
+            self.X=Xtmp
+            self.P=Ptmp
 
             print(KG.shape)
 
         else:
             theta = X[2,0]
+            #Coordinate of the new landmark into the initial frame
             L= matmul(self.getRotation(theta),Z) + X[0:2,0]
 
+            #Jacobien --> uncertaincy of our robot state  
             n= len(self.idx)
             Jrobot=mat([[1,0,-sin(theta)*Z[0,0]-cos(theta)*Z[1,0]],[0,1,cos(theta)*Z[0,0]-sin(theta)*Z[1,0]]])
             Jzeros=zeros((2,n*2))
-            #Jland=self.getRotation(theta)
-            J=hstack((Jrobot,Jzeros)) #,Jland
+            J=hstack((Jrobot,Jzeros))
 
+            #Jacobien --> uncertaincy bring by the measure
             Rtheta=self.getRotation(theta)
             R=pow(uncertainty,2)*identity(2)
+ 
             S= matmul(Rtheta,matmul(R,transpose(Rtheta))) + matmul(J,matmul(self.P,transpose(J))) 
 
+            #Covariance matrix of our global state
             Ptmp=zeros((self.P.shape[0]+2,self.P.shape[1]+2))
             Ptmp[0:self.P.shape[0],0:self.P.shape[1]]=self.P
             Ptmp[self.P.shape[0]:,self.P.shape[1]:]=S
             
-            print(n)
-            print(J.shape)
-            print(Jzeros)
-            print(self.P.shape)
-            print(transpose(J).shape)
-
-            #H=numpy.zeros(2,3+2*n)
-            #Hrobot = mat([[-cos(theta), -sin(theta), (-sin(theta)*(L[0,0]-X[0,0])+cos(theta)*(L[1,0]-X[1,0]))], 
-            #          [sin(theta),  -cos(theta), (-cos(theta)*(L[0,0]-X[0,0])-sin(theta)*(L[1,0]-X[1,0]))]])
-            # Hland= mat([[cos(theta),sin(theta)],[-sin(theta),cos(theta)]])
-            # Hzeros=numpy.zeros(2,n-5)
-            # H=hstack((Hrobot,Hzeros,Hland))
-
-            # P=numpy.zeros(2,3+2*n)
-            # P[0:3,0:3]=P0
-            # P[3:3+2*n,0:3]
-
+            #Add a landmark position to our State vector X
             X= vstack((X,L)) 
             self.idx[id]=self.counter
             self.counter+=2
