@@ -83,21 +83,20 @@ class MappingKF(RoverKinematics):
         P= self.P[0:3,0:3]
         odoRobotFrame=matmul(iW,S)
         A= mat([[1,0,-sin(theta)*odoRobotFrame[0,0]-cos(theta)*odoRobotFrame[1,0]],[0,1,cos(theta)*odoRobotFrame[0,0]-sin(theta)*odoRobotFrame[1,0]],[0,0,1]])
-        AT=transpose(A)
+        # AT=transpose(A)
 
-        B=matmul(Rtheta,iW)
-        BT=transpose(B)
+        B=Rtheta*iW
+        # BT=transpose(B)
         
 
         # Qu=matmul(S,transpose(S))
-        Qu = pow(encoder_precision,2)*identity(12)
+        Qu = (encoder_precision**2)*identity(12)
         Q= pow(10,-4)*identity(3)
-        # Q= pow(encoder_precision,2)*identity(3)
      
         odoWorldFrame=matmul(Rtheta,odoRobotFrame)
         
         X = X + odoWorldFrame
-        P = matmul(A,matmul(P,AT)) + matmul(B,matmul(Qu,BT)) + Q
+        P = A*P*A.T + B*Qu*B.T + Q
 
         self.X[0:3,0] = X[0:3,0]
         self.P[0:3,0:3] = P[0:3,0:3]
@@ -120,16 +119,14 @@ class MappingKF(RoverKinematics):
         if id in self.idx:
             #self.idx[id].update(Z=Z,X=self.X,R=uncertainty)
             # self.idx[id]=0
-            n = len(self.idx)
-            l=self.idx[id]
-            P=self.P
-            theta = self.X[2,0]
-            uncertainty=5
-            R=pow(uncertainty,2)*identity(2)
-            L=self.X[l:l+2,0]
-            print(L)
 
-            
+            l=self.idx[id]
+
+            theta = self.X[2,0]
+            # uncertainty=5
+            R=(uncertainty**2)*identity(2)
+            L=self.X[l:l+2,0]
+
             H = mat(zeros((2,2*len(self.idx)+3)))
             LX=L-self.X[0:2,0]
             H[0,0] = -cos(theta) 
@@ -162,54 +159,66 @@ class MappingKF(RoverKinematics):
             #Zpred= matmul(self.getRotation(-theta),(L-self.X[0:2,0]))
             #self.X= self.X + matmul(KG,(Z-Zpred))
             Zpred=self.getRotation(-theta)*(L-self.X[0:2,0])
+
             self.X= self.X + KG*(Z-Zpred)
-
-
-
-            print(KG)
-            print(H)
 
 
         else:
             theta = self.X[2,0]
-            
+
+            self.idx[id]=self.counter
+            self.counter+=2
+            L= self.X[0:2,0] + self.getRotation(theta)*Z
+            self.X=vstack((self.X,L))
+                      
             #Coordinate of the new landmark into the initial frame
             #L= matmul(self.getRotation(theta),Z) + self.X[0:2,0]
-            L= self.X[0:2,0] + self.getRotation(theta)*Z
             
-
+            
             #Jacobien --> uncertaincy of our robot state  
             # n= len(self.idx)
             # Jrobot=mat([[1,0,-sin(theta)*Z[0,0]-cos(theta)*Z[1,0]],[0,1,cos(theta)*Z[0,0]-sin(theta)*Z[1,0]]])
             # Jzeros=zeros((2,n*2))
             # J=hstack((Jrobot,Jzeros))
-            n = len(self.idx)
-            J = mat(zeros((2,3+2*n)))
-            J[0,0] = 1 
-            J[0,1] = 0
-            J[0,2] = -sin(theta)*Z[0,0]-cos(theta)*Z[1,0]
-            J[1,0] = 0
-            J[1,1] = 1
-            J[1,2] = cos(theta)*Z[0,0]-sin(theta)*Z[1,0]
-            J[0:2,3:3+n*2] = zeros((2,n*2))
 
+            # n = len(self.idx)
+            # J = mat(zeros((2,3+2*n)))
+            # J[0,0] = 1 
+            # J[0,1] = 0
+            # J[0,2] = -sin(theta)*Z[0,0]-cos(theta)*Z[1,0]
+            # J[1,0] = 0
+            # J[1,1] = 1
+            # J[1,2] = cos(theta)*Z[0,0]-sin(theta)*Z[1,0]
+            # J[0:2,3:3+n*2] = zeros((2,n*2))
+            
+            
+            l=self.idx[id] 
+            J = mat(zeros((2,2*len(self.idx)+3)))
+            LX=L-self.X[0:2,0]
+            J[0,0] = -cos(theta) 
+            J[0,1] = -sin(theta)
+            J[0,2] = -sin(theta)*LX[0,0]+cos(theta)*LX[1,0]
+            J[1,0] = sin(theta)
+            J[1,1] = -cos(theta)
+            J[1,2] = -cos(theta)*LX[0,0]-sin(theta)*LX[1,0]
+            J[0:2,l:l+2] = self.getRotation(-theta)
 
             #Jacobien --> uncertaincy bring by the measure
-            Rtheta=self.getRotation(theta)
-            R=pow(uncertainty,2)*identity(2)
- 
-            S= matmul(Rtheta,matmul(R,transpose(Rtheta))) + matmul(J,matmul(self.P,transpose(J))) 
+            Rtheta=self.getRotation(theta) #theta ou -theta
+            R=(uncertainty**2)*identity(2)
+
+
+            #uncertaincy bring by the measure + the robot
+            S= Rtheta*R*Rtheta.T + J*self.P*J.T
 
             #Covariance matrix of our global state
             Ptmp=zeros((self.P.shape[0]+2,self.P.shape[1]+2))
             Ptmp[0:self.P.shape[0],0:self.P.shape[1]]=self.P
-            Ptmp[self.P.shape[0]:,self.P.shape[1]:]=S
+            Ptmp[self.P.shape[0]:self.P.shape[0]+2,self.P.shape[1]:self.P.shape[0]+2]=S
             
             #Add a landmark position to our State vector X
-            #X= vstack((X,L)) 
-            self.idx[id]=self.counter
-            self.counter+=2
-            self.X=vstack((self.X,L))
+            #X= vstack((X,L))
+
             self.P=Ptmp       
      
         self.lock.release()
@@ -306,7 +315,6 @@ class MappingKF(RoverKinematics):
             marker.lifetime.secs=3.0;
             ma.markers.append(marker)
         self.marker_pub.publish(ma)
-
 
 
 
