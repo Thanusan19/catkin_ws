@@ -11,8 +11,6 @@ import threading
 import rover_driver_base
 from rover_driver_base.rover_kinematics import *
 
-
-
 class MappingKF(RoverKinematics):
     def __init__(self, initial_pose, initial_uncertainty):
         RoverKinematics.__init__(self)
@@ -22,6 +20,7 @@ class MappingKF(RoverKinematics):
         self.idx = {}
         self.pose_pub = rospy.Publisher("~pose",PoseStamped,queue_size=1)
         self.marker_pub = rospy.Publisher("~landmarks",MarkerArray,queue_size=1)
+        self.counter = 3
 
     def getRotation(self, theta):
         R = mat(zeros((2,2)))
@@ -29,6 +28,31 @@ class MappingKF(RoverKinematics):
         R[1,0] = sin(theta); R[1,1] = cos(theta)
         return R
 
+    def prepare_inversion_matrix(self,drive_cfg):
+        W = numpy.asmatrix(numpy.zeros((len(prefix)*2,3)))
+        for i in range(len(prefix)):
+            k = prefix[i]
+            # prepare the least-square matrices
+            W[2*i+0,0] = 1; W[2*i+0,1] = 0; W[2*i+0,2] = -drive_cfg[k].y; 
+            W[2*i+1,0] = 0; W[2*i+1,1] = 1; W[2*i+1,2] = +drive_cfg[k].x; 
+        return pinv(W)
+        
+    def prepare_displacement_matrix(self, motor_state_t1, motor_state_t2, drive_cfg):
+        # then compute odometry using least square
+        S = numpy.asmatrix(numpy.zeros((len(prefix)*2,1)))
+        for i in range(len(prefix)):
+            k = prefix[i]
+            # compute differentials
+            beta = (motor_state_t1.steering[k]+motor_state_t2.steering[k])/2
+            ds = (motor_state_t2.drive[k] - motor_state_t1.drive[k]) % (2*pi)
+            if ds>pi:
+                ds -= 2*pi
+            if ds<-pi:
+                ds += 2*pi
+            ds *= drive_cfg[k].radius
+            S[2*i+0,0] = ds*cos(beta)
+            S[2*i+1,0] = ds*sin(beta)
+        return S 
     
     def predict(self, motor_state, drive_cfg, encoder_precision):
         self.lock.acquire()
@@ -53,8 +77,27 @@ class MappingKF(RoverKinematics):
         # Update the state using odometry (same code as for the localisation
         # homework), but we only need to deal with a subset of the state:
         # TODO
-        # self.X[0:3,0] = ...
-        # self.P[0:3,0:3] = ...
+
+        X = self.X[0:3,0]
+        P = self.P[0:3,0:3]
+
+        odoRobotFrame=matmul(iW,S)
+        A= [[1,0,-sin(theta)*odoRobotFrame[0,0]-cos(theta)*odoRobotFrame[1,0]],[0,1,cos(theta)*odoRobotFrame[0,0]-sin(theta)*odoRobotFrame[1,0]],[0,0,1]]
+        AT=transpose(A)
+
+        B=matmul(Rtheta,iW)
+        BT=transpose(B)
+        
+        Qu=matmul(S,transpose(S))
+        Q= pow(10,-4)*identity(3)
+     
+        odoWorldFrame=matmul(Rtheta,odoRobotFrame)
+        
+        self.X = X + odoWorldFrame
+        self.P = dot(A,dot(P,AT)) + dot(B,dot(Qu,BT)) + Q
+
+        self.X[0:3,0] = X[0:3,0]
+        self.P[0:3,0:3] = P[0:3,0:3]
         self.lock.release()
         return (self.X,self.P)
 
@@ -66,6 +109,22 @@ class MappingKF(RoverKinematics):
         # Update the full state self.X and self.P based on landmark id
         # be careful that this might be the first time that id is observed
         # TODO
+
+
+        Rtheta_minus=self.getRotation(-theta)
+        Rtheta=self.getRotation(theta)
+
+        print Z
+
+        if id in self.idx:
+            Rtheta_minus
+
+            self.idx[id]
+        else:
+            L = numpy.matmul(Rtheta,Z) + X[0:2,0]
+            self.X = vstack(self.X,L)
+            self.idx[id] = self.counter
+            self.counter = self.counter+2
         # self.X = ...
         # self.P = ...
         self.lock.release()
@@ -162,4 +221,7 @@ class MappingKF(RoverKinematics):
             marker.lifetime.secs=3.0;
             ma.markers.append(marker)
         self.marker_pub.publish(ma)
+
+
+
 

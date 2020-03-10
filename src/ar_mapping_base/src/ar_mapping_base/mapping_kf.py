@@ -82,7 +82,6 @@ class MappingKF:
     def update_ar(self, Z, X, Id, uncertainty):
         self.lock.acquire()
         print "Update: Z="+str(Z.T)+" X="+str(X.T)+" Id="+str(Id)
-        R = mat(diag([uncertainty,uncertainty]))
 
         if Id in self.marker_list:
             self.marker_list[Id].update(Z=Z,X=X,R=uncertainty)
