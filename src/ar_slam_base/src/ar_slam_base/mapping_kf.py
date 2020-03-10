@@ -117,18 +117,14 @@ class MappingKF(RoverKinematics):
     
 
         if id in self.idx:
-            #self.idx[id].update(Z=Z,X=self.X,R=uncertainty)
-            # self.idx[id]=0
 
             l=self.idx[id]
-
             theta = self.X[2,0]
-            # uncertainty=5
             R=(uncertainty**2)*identity(2)
             L=self.X[l:l+2,0]
 
 
-            H = mat(zeros((2,2*len(self.idx)+3)))
+            H = mat(zeros((2,self.counter)))
             LX=L-self.X[0:2,0]
             H[0,0] = -cos(theta) 
             H[0,1] = -sin(theta)
@@ -136,7 +132,11 @@ class MappingKF(RoverKinematics):
             H[1,0] = sin(theta)
             H[1,1] = -cos(theta)
             H[1,2] = -cos(theta)*LX[0,0]-sin(theta)*LX[1,0]
-            H[:,l:l+2] = self.getRotation(-theta)
+
+            H[0,l] = cos(theta)
+            H[0,l+1] = sin(theta)
+            H[1,l] = -sin(theta)
+            H[1,l+1] = cos(theta)
 
 
             # Hrobot = mat([[-cos(theta), -sin(theta), (-sin(theta)*(L[0,0]-self.X[0,0])+cos(theta)*(L[1,0]-self.X[1,0]))], 
@@ -150,11 +150,12 @@ class MappingKF(RoverKinematics):
             # summ=matmul(H,matmul(self.P,transpose(H))) + R
             # sumInv=linalg.inv(summ)
             # KG=matmul(self.P,matmul(transpose(H),sumInv))
-            KG=self.P*H.T*linalg.inv(H*self.P*H.T + R)
+            KG=self.P*H.T*pinv(H*self.P*H.T + R)
 
             #Calculation of covariance matrix
             #self.P=matmul((identity(self.P.shape[0])-matmul(KG,H)),self.P)
-            self.P=(identity(self.P.shape[0])-KG*H)*self.P
+            err=mat(diag([ 10**(-10) for i in range(self.counter)]))
+            self.P=(identity(self.counter)-KG*H)*self.P + err
 
             #Calculation of X
             #Zpred= matmul(self.getRotation(-theta),(L-self.X[0:2,0]))
@@ -169,9 +170,11 @@ class MappingKF(RoverKinematics):
 
             self.idx[id]=self.counter
             self.counter+=2
+            l=self.idx[id]
             L= self.X[0:2,0] + self.getRotation(theta)*Z
             self.X=vstack((self.X,L))
-                      
+            
+
             #Coordinate of the new landmark into the initial frame
             #L= matmul(self.getRotation(theta),Z) + self.X[0:2,0]
             
@@ -200,9 +203,11 @@ class MappingKF(RoverKinematics):
             # J[1,2+n*2]=cos(theta)
 
             
+            Ptmp=zeros((self.counter,self.counter))
+            Ptmp[0:self.counter-2,0:self.counter-2]=self.P
             
-            l=self.idx[id] 
-            J = mat(zeros((2,2*len(self.idx)+3)))
+
+            J = mat(zeros((2,self.counter)))
             LX=L-self.X[0:2,0]
             J[0,0] = -cos(theta) 
             J[0,1] = -sin(theta)
@@ -210,43 +215,43 @@ class MappingKF(RoverKinematics):
             J[1,0] = sin(theta)
             J[1,1] = -cos(theta)
             J[1,2] = -cos(theta)*LX[0,0]-sin(theta)*LX[1,0]
-            J[0:2,l:l+2] = self.getRotation(-theta)
+
+            J[0,l] = cos(theta); J[0,l+1] = sin(theta)
+            J[1,l] = -sin(theta); J[1,l+1] = cos(theta)
 
             #Jacobien --> uncertaincy bring by the measure
-<<<<<<< HEAD
-            Rtheta=self.getRotation(theta) #theta ou -theta
+
+            Rtheta=self.getRotation(-theta) #theta ou -theta
             R=(uncertainty**2)*identity(2)
 
 
             #uncertaincy bring by the measure + the robot
-            S= Rtheta*R*Rtheta.T + J*self.P*J.T
+            # S= Rtheta*R*Rtheta.T + J*self.P*J.T
 
-            #Covariance matrix of our global state
-            Ptmp=zeros((self.P.shape[0]+2,self.P.shape[1]+2))
-            Ptmp[0:self.P.shape[0],0:self.P.shape[1]]=self.P
-            Ptmp[self.P.shape[0]:self.P.shape[0]+2,self.P.shape[1]:self.P.shape[0]+2]=S
+            # #Covariance matrix of our global state
+            # Ptmp=zeros((self.P.shape[0]+2,self.P.shape[1]+2))
+            # Ptmp[0:self.P.shape[0],0:self.P.shape[1]]=self.P
+            # Ptmp[self.P.shape[0]:self.P.shape[0]+2,self.P.shape[1]:self.P.shape[0]+2]=S
             
             #Add a landmark position to our State vector X
             #X= vstack((X,L))
 
             # Rtheta=self.getRotation(theta)
             # R=pow(uncertainty,2)*identity(2)
-            # Ptmp=zeros((self.P.shape[0]+2,self.P.shape[1]+2))
-            # Ptmp[0:self.P.shape[0],0:self.P.shape[1]]=self.P
-            # #P=mat(zeros(3+2*n,3+2*n))
-            # # P[:3+2*n-2,:3+2*n-2]=self.P
-            # # self.P=P
 
-            # #S= matmul(Rtheta,matmul(R,transpose(Rtheta))) + matmul(J,matmul(Ptmp,transpose(J))) 
-            # S=Rtheta*R*Rtheta.T + J*Ptmp*J.T
-            # #Covariance matrix of our global state
+            #P=mat(zeros(3+2*n,3+2*n))
+            # P[:3+2*n-2,:3+2*n-2]=self.P
+            # self.P=P
+
+            #S= matmul(Rtheta,matmul(R,transpose(Rtheta))) + matmul(J,matmul(Ptmp,transpose(J))) 
+            S=Rtheta*R*Rtheta.T + J*Ptmp*J.T
+            #Covariance matrix of our global state
             
-            # Ptmp[self.P.shape[0]:,self.P.shape[1]:]=S
+            Ptmp[l:l+2,l:l+2]=S
             
             # #Add a landmark position to our State vector X
             # #X= vstack((X,L)) 
            
-            # self.P=Ptmp
             
 
 
@@ -255,16 +260,47 @@ class MappingKF(RoverKinematics):
         self.lock.release()
         return (self.X,self.P)
 
-    def update_compass(self, Z, uncertainty):
-        self.lock.acquire()
-        print "Update: S="+str(Z)+" X="+str(self.X.T)
-        # Update the full state self.X and self.P based on compass measurement
-        # TODO
-        # self.X = ...
-        # self.P = ...
-        self.lock.release()
-        return (self.X,self.P)
+    # def update_compass(self, Z, uncertainty):
+    #     self.lock.acquire()
+    #     print "Update: S="+str(Z)+" X="+str(self.X.T)
+    #     # Update the full state self.X and self.P based on compass measurement
+    #     # TODO
+    #     # self.X = ...
+    #     # self.P = ...
+    #     self.lock.release()
+    #     return (self.X,self.P)
 
+    def update_compass(self, Z, uncertainty):
+            self.lock.acquire()
+            print "Update: S="+str(Z)+" X="+str(self.X[2,0]) + "X mod 2pi = "+str(self.X[2,0] % (2*pi))
+            # Update the full state self.X and self.P based on compass measurement
+            # TODO
+            if Z < 0 :
+                Z = 2*pi + Z
+                if Z > pi :
+                    Z = - (2 * pi - Z)
+            print("new Z = ", Z)
+            
+
+            h = (self.X[2,0] % (2*pi))
+            if h > pi :
+                h = -(2* pi - h)
+            print("new X = ", h)
+            diff = Z - h
+            if diff > pi :
+                diff -= 2*pi 
+            elif  diff < -pi :
+                diff += 2*pi 
+            H = mat(zeros((1,self.counter)))
+            H[0,2] = 1
+            R = uncertainty
+            K = self.P * H.T * pinv(H * self.P * H.T + R)
+            self.P = (identity(self.counter) - (K * H)) * self.P
+            #diff = min()
+            self.X = self.X + K * (diff)
+            print("Diff : ", diff)
+            self.lock.release()
+            return (self.X,self.P)
 
     def publish(self, target_frame, timestamp):
         pose = PoseStamped()
