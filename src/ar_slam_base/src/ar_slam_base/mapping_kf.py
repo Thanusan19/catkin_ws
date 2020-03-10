@@ -124,9 +124,9 @@ class MappingKF(RoverKinematics):
             l=self.idx[id]
             P=self.P
             theta = self.X[2,0]
-            uncertainty=5
+            #uncertainty=3
             R=pow(uncertainty,2)*identity(2)
-            L=self.X[l:l+2,0]
+            L=self.X[l:l+2,:]
             print(L)
 
             
@@ -138,7 +138,7 @@ class MappingKF(RoverKinematics):
             H[1,0] = sin(theta)
             H[1,1] = -cos(theta)
             H[1,2] = -cos(theta)*LX[0,0]-sin(theta)*LX[1,0]
-            H[0:2,l:l+2] = self.getRotation(-theta)
+            H[:,l:l+2] = self.getRotation(-theta)
 
 
             # Hrobot = mat([[-cos(theta), -sin(theta), (-sin(theta)*(L[0,0]-self.X[0,0])+cos(theta)*(L[1,0]-self.X[1,0]))], 
@@ -183,6 +183,10 @@ class MappingKF(RoverKinematics):
             # Jrobot=mat([[1,0,-sin(theta)*Z[0,0]-cos(theta)*Z[1,0]],[0,1,cos(theta)*Z[0,0]-sin(theta)*Z[1,0]]])
             # Jzeros=zeros((2,n*2))
             # J=hstack((Jrobot,Jzeros))
+            self.idx[id]=self.counter
+            self.counter+=2
+            self.X=vstack((self.X,L))
+
             n = len(self.idx)
             J = mat(zeros((2,3+2*n)))
             J[0,0] = 1 
@@ -191,25 +195,31 @@ class MappingKF(RoverKinematics):
             J[1,0] = 0
             J[1,1] = 1
             J[1,2] = cos(theta)*Z[0,0]-sin(theta)*Z[1,0]
-            J[0:2,3:3+n*2] = zeros((2,n*2))
+            J[:,3:3+n*2] = zeros((2,n*2))
+            J[0,1+n*2]=cos(theta)
+            J[0,2+n*2]=-sin(theta)
+            J[1,1+n*2]=sin(theta)
+            J[1,2+n*2]=cos(theta)
 
 
             #Jacobien --> uncertaincy bring by the measure
             Rtheta=self.getRotation(theta)
             R=pow(uncertainty,2)*identity(2)
- 
-            S= matmul(Rtheta,matmul(R,transpose(Rtheta))) + matmul(J,matmul(self.P,transpose(J))) 
-
-            #Covariance matrix of our global state
             Ptmp=zeros((self.P.shape[0]+2,self.P.shape[1]+2))
             Ptmp[0:self.P.shape[0],0:self.P.shape[1]]=self.P
+            #P=mat(zeros(3+2*n,3+2*n))
+            # P[:3+2*n-2,:3+2*n-2]=self.P
+            # self.P=P
+
+            #S= matmul(Rtheta,matmul(R,transpose(Rtheta))) + matmul(J,matmul(Ptmp,transpose(J))) 
+            S=Rtheta*R*Rtheta.T + J*Ptmp*J.T
+            #Covariance matrix of our global state
+            
             Ptmp[self.P.shape[0]:,self.P.shape[1]:]=S
             
             #Add a landmark position to our State vector X
             #X= vstack((X,L)) 
-            self.idx[id]=self.counter
-            self.counter+=2
-            self.X=vstack((self.X,L))
+           
             self.P=Ptmp
             
 
