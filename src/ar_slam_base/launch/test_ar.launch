@@ -38,7 +38,7 @@
         <param name="ignore_id" value="False"/>
         <param name="target_frame" value="/world"/>
         <!-- Expected precision of wheel displacement measurement (in meter) -->
-        <param name="encoder_precision" value="0.005"/>
+        <param name="encoder_precision" value="0.001"/>
         <!-- Expected precision of ar_tag localisation (in meter) -->
         <param name="ar_precision" value="0.50"/>
         <!-- Expected precision of compass measurement (in radian) -->
