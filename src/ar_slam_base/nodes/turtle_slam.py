@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 import roslib
-roslib.load_manifest('ar_slam')
+roslib.load_manifest('ar_slam_base')
 
 import rospy
 import tf

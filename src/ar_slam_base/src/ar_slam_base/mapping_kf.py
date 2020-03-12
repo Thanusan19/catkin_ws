@@ -209,12 +209,19 @@ class MappingKF(RoverKinematics):
 
             J = mat(zeros((2,self.counter)))
             LX=L-self.X[0:2,0]
-            J[0,0] = -cos(theta) 
-            J[0,1] = -sin(theta)
-            J[0,2] = -sin(theta)*LX[0,0]+cos(theta)*LX[1,0]
-            J[1,0] = sin(theta)
-            J[1,1] = -cos(theta)
-            J[1,2] = -cos(theta)*LX[0,0]-sin(theta)*LX[1,0]
+            # J[0,0] = -cos(theta) 
+            # J[0,1] = -sin(theta)
+            # J[0,2] = -sin(theta)*LX[0,0]+cos(theta)*LX[1,0]
+            # J[1,0] = sin(theta)
+            # J[1,1] = -cos(theta)
+            # J[1,2] = -cos(theta)*LX[0,0]-sin(theta)*LX[1,0]
+
+            J[0,0] = 1
+            J[0,1] = 0
+            J[0,2] = -sin(theta)*Z[0,0]-cos(theta)*Z[1,0]
+            J[1,0] = 0
+            J[1,1] = 1
+            J[1,2] = cos(theta)*Z[0,0]-sin(theta)*Z[1,0]
 
             J[0,l] = cos(theta); J[0,l+1] = sin(theta)
             J[1,l] = -sin(theta); J[1,l+1] = cos(theta)
