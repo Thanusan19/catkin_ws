@@ -16,7 +16,7 @@ from numpy import mat,vstack,diag, zeros, eye
 from numpy.linalg import inv
 from math import atan2, hypot, pi, cos, sin, fmod, sqrt
 
-from ar_track_alvar_msgs.msg import AlvarMarkers
+from ar_track_alvar.msg import AlvarMarkers
 
 def norm_angle(x):
     return fmod(x+pi,2*pi)-pi
@@ -57,7 +57,6 @@ class BubbleSLAM:
         lasttf = rospy.Time(0)
         self.listener.waitForTransform(self.odom_frame,self.body_frame, now, rospy.Duration(5.0))
         (trans,rot) = self.listener.lookupTransform(self.odom_frame,self.body_frame, lasttf)
-        print 'AR_SLAM up and running.\n'
 
     def predict(self, dt, dr):
         theta = self.X[2,0]
@@ -81,40 +80,31 @@ class BubbleSLAM:
 
     def update_ar(self, Z, id, uncertainty):
         # Z is a dictionary of id->vstack([x,y])
-        #print "Update: Z="+str(Z.T)+" X="+str(self.X.T)+" Id="+str(id)
         (n,_) = self.X.shape
         R = mat(diag([uncertainty,uncertainty]))
         theta = self.X[2,0]
         Rtheta = self.getRotation(theta)
         Rmtheta = self.getRotation(-theta)
         H = mat(zeros((0, n)))
-        found = 0
         if id in self.idx.keys():
-            list = self.idx[id];
-            print 'list for ' + repr(id) + ': ' + repr(list) 
-            for l in list :
-                H = mat(zeros((2,n)))
-                H[0:2,0:2] = -Rmtheta
-                H[0:2,2] = mat(vstack([-(self.X[l+0,0]-self.X[0,0])*sin(theta) + (self.X[l+1,0]-self.X[1,0])*cos(theta), \
-                                   (-self.X[l+0,0]-self.X[0,0])*cos(theta) - (self.X[l+1,0]-self.X[1,0])*sin(theta)]))
-                H[0:2,l:l+2] = Rmtheta
-                Zpred = Rmtheta * (self.X[l:l+2,0] - self.X[0:2,0])
-                zdiff = Z-Zpred;
-                zdiff = abs(zdiff[0]) + abs(zdiff[1]);
-                if zdiff <= 2:
-                    found = 1; 
-                    S = H * self.P * H.T + R
-                    K = self.P * H.T * inv(S)
-                    self.X = self.X + K * (Z - Zpred)
-                    self.P = (mat(eye(n)) - K * H) * self.P
-                else :
-                    print 'id: ' + repr(id) + ', Z diff: ' + repr(zdiff)
-        if found == 0 :
-            if id in self.idx.keys() :
-                self.idx[id].append(n);
+            l = self.idx[id]
+            H = mat(zeros((2,n)))
+            H[0:2,0:2] = -Rmtheta
+            H[0:2,2] = mat(vstack([-(self.X[l+0,0]-self.X[0,0])*sin(theta) + (self.X[l+1,0]-self.X[1,0])*cos(theta), \
+                                   -(self.X[l+0,0]-self.X[0,0])*cos(theta) - (self.X[l+1,0]-self.X[1,0])*sin(theta)]))
+            H[0:2,l:l+2] = Rmtheta
+            Zpred = Rmtheta * (self.X[l:l+2,0] - self.X[0:2,0])
+            S = H * self.P * H.T + R
+            K = self.P * H.T * inv(S)
+            zdiff = Z-Zpred;
+            zdiff = abs(zdiff[0]) + abs(zdiff[1]);
+            if zdiff <= 5:
+                 self.X = self.X + K * (Z - Zpred)
+                 self.P = (mat(eye(n)) - K * H) * self.P
             else :
-                print 'created entry for ' + repr(id) 
-                self.idx[id] = [n];
+                 print 'id: ' + repr(id) + ' error is too large.'
+        else:
+            self.idx[id] = n
             self.X = numpy.concatenate((self.X, self.X[0:2,0]+(Rtheta*Z)))
             Pnew = mat(diag([uncertainty]*(n+2)))
             Pnew[0:n,0:n] = self.P
@@ -126,17 +116,17 @@ class BubbleSLAM:
             if m.id > 32:
                 continue
             lasttf = rospy.Time(0) #m.header.stamp
-            self.listener.waitForTransform(self.body_frame,m.header.frame_id, lasttf, rospy.Duration(1.0))
+            self.listener.waitForTransform(self.body_frame, m.header.frame_id, lasttf, rospy.Duration(1.0))
             m_pose = PointStamped()
             m_pose.header = m.header
             m_pose.point = m.pose.pose.position
-            m_pose = self.listener.transformPoint(self.body_frame,m_pose)
-            Z = vstack([m_pose.point.x,m_pose.point.y])
+            m_pose = self.listener.transformPoint(self.body_frame, m_pose)
+            Z = vstack([m_pose.point.x, m_pose.point.y])
             self.lock.acquire()
             if self.ignore_id:
-                self.update_ar(Z,0,self.ar_precision)
+                self.update_ar(Z, 0, self.ar_precision)
             else:
-                self.update_ar(Z,m.id,self.ar_precision)
+                self.update_ar(Z, m.id, self.ar_precision)
             self.lock.release()
 
 
@@ -161,11 +151,11 @@ class BubbleSLAM:
                           [         0,           0, 1, 0],
                           [         0,           0, 0, 1],
                           ]);
-            correction_mat = pose_mat*inv(new_odom)
+            correction_mat = pose_mat * inv(new_odom);
             self.lock.release()
             scale, shear, angles, trans, persp = decompose_matrix(correction_mat)
             self.broadcaster.sendTransform(trans,
-                    quaternion_from_euler(*angles),now, self.odom_frame,self.target_frame)
+                    quaternion_from_euler(*angles),now, self.odom_frame, self.target_frame)
             self.publish(now)
             rate.sleep()
 
@@ -191,13 +181,8 @@ class BubbleSLAM:
         marker.action = Marker.ADD
         marker.pose = pose.pose
         marker.pose.position.z = -0.1
-        try :
-            marker.scale.x = 3*sqrt(self.P[0,0])
-            marker.scale.y = 3*sqrt(self.P[1,1]);
-        except :
-            print 'Error with self.P\n: ' + repr(self.P)
-            marker.scale.x = 0.1;
-            marker.scale.y = 0.1; 
+        marker.scale.x = 3*sqrt(self.P[0,0])
+        marker.scale.y = 3*sqrt(self.P[1,1]);
         marker.scale.z = 0.1;
         marker.color.a = 1.0;
         marker.color.r = 0.0;
@@ -205,56 +190,54 @@ class BubbleSLAM:
         marker.color.b = 1.0;
         ma.markers.append(marker)
         for id in self.idx.iterkeys():
-            list = self.idx[id];
-            for entry in range(0, len(list)):
-                l = list[entry];
-                marker = Marker()
-                marker.header.stamp = timestamp
-                marker.header.frame_id = self.target_frame
-                marker.ns = "landmark_kf"
-                marker.id = id + 100*entry;
-                marker.type = Marker.CYLINDER
-                marker.action = Marker.ADD
-                marker.pose.position.x = self.X[l,0]
-                marker.pose.position.y = self.X[l+1,0]
-                marker.pose.position.z = -0.1
-                marker.pose.orientation.x = 0
-                marker.pose.orientation.y = 0
-                marker.pose.orientation.z = 1
-                marker.pose.orientation.w = 0
-                marker.scale.x = 3*sqrt(self.P[l,l])
-                marker.scale.y = 3*sqrt(self.P[l+1,l+1]);
-                marker.scale.z = 0.1;
-                marker.color.a = 1.0;
-                marker.color.r = 0.25;
-                marker.color.g = 0;
-                marker.color.b = 0.25;
-                marker.lifetime.secs=3.0;
-                ma.markers.append(marker)
-                marker = Marker()
-                marker.header.stamp = timestamp
-                marker.header.frame_id = self.target_frame
-                marker.ns = "landmark_kf"
-                marker.id = 1000+id+100*entry;
-                marker.type = Marker.TEXT_VIEW_FACING
-                marker.action = Marker.ADD
-                marker.pose.position.x = self.X[l+0,0]
-                marker.pose.position.y = self.X[l+1,0]
-                marker.pose.position.z = 1.0
-                marker.pose.orientation.x = 0
-                marker.pose.orientation.y = 0
-                marker.pose.orientation.z = 1
-                marker.pose.orientation.w = 0
-                marker.text = str(id)
-                marker.scale.x = 1.0
-                marker.scale.y = 1.0
-                marker.scale.z = 0.2
-                marker.color.a = 1.0;
-                marker.color.r = 1.0;
-                marker.color.g = 1.0;
-                marker.color.b = 1.0;
-                marker.lifetime.secs=3.0;
-                ma.markers.append(marker)
+            marker = Marker()
+            marker.header.stamp = timestamp
+            marker.header.frame_id = self.target_frame
+            marker.ns = "landmark_kf"
+            marker.id = id
+            marker.type = Marker.CYLINDER
+            marker.action = Marker.ADD
+            l = self.idx[id]
+            marker.pose.position.x = self.X[l,0]
+            marker.pose.position.y = self.X[l+1,0]
+            marker.pose.position.z = -0.1
+            marker.pose.orientation.x = 0
+            marker.pose.orientation.y = 0
+            marker.pose.orientation.z = 1
+            marker.pose.orientation.w = 0
+            marker.scale.x = 0.2;#3*sqrt(self.P[l,l])
+            marker.scale.y = 0.2;#3*sqrt(self.P[l+1,l+1]);
+            marker.scale.z = 0.1;
+            marker.color.a = 1.0;
+            marker.color.r = 1.0;
+            marker.color.g = 1.0;
+            marker.color.b = 0.0;
+            marker.lifetime.secs=3.0;
+            ma.markers.append(marker)
+            marker = Marker()
+            marker.header.stamp = timestamp
+            marker.header.frame_id = self.target_frame
+            marker.ns = "landmark_kf"
+            marker.id = 1000+id
+            marker.type = Marker.TEXT_VIEW_FACING
+            marker.action = Marker.ADD
+            marker.pose.position.x = self.X[l+0,0]
+            marker.pose.position.y = self.X[l+1,0]
+            marker.pose.position.z = 1.0
+            marker.pose.orientation.x = 0
+            marker.pose.orientation.y = 0
+            marker.pose.orientation.z = 1
+            marker.pose.orientation.w = 0
+            marker.text = str(id)
+            marker.scale.x = 1.0
+            marker.scale.y = 1.0
+            marker.scale.z = 0.2
+            marker.color.a = 1.0;
+            marker.color.r = 1.0;
+            marker.color.g = 1.0;
+            marker.color.b = 1.0;
+            marker.lifetime.secs=3.0;
+            ma.markers.append(marker)
         self.marker_pub.publish(ma)
 
 
