@@ -16,7 +16,7 @@ from numpy import mat,vstack,diag, zeros, eye
 from numpy.linalg import inv
 from math import atan2, hypot, pi, cos, sin, fmod, sqrt
 
-from ar_track_alvar_msgs.msg import AlvarMarkers
+from ar_track_alvar.msg import AlvarMarkers
 
 def norm_angle(x):
     return fmod(x+pi,2*pi)-pi
@@ -222,8 +222,8 @@ class BubbleSLAM:
                 marker.pose.orientation.y = 0
                 marker.pose.orientation.z = 1
                 marker.pose.orientation.w = 0
-                marker.scale.x = 3*sqrt(self.P[l,l])
-                marker.scale.y = 3*sqrt(self.P[l+1,l+1]);
+                marker.scale.x = 0.2;#3*sqrt(self.P[l,l])
+                marker.scale.y = 0.2;#3*sqrt(self.P[l+1,l+1]);
                 marker.scale.z = 0.1;
                 marker.color.a = 1.0;
                 marker.color.r = 0.25;

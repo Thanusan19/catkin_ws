@@ -1,4 +1,5 @@
 <launch>
+    <!--
 	<arg name="marker_size" default="50.0" />
 	<arg name="max_new_marker_error" default="0.08" />
 	<arg name="max_track_error" default="0.2" />
@@ -6,6 +7,16 @@
     <arg name="cam_info_topic" default="/vrep/visionSensorInfo" />	
 	<arg name="output_frame" default="/frontCamera" />
 	<node name="ar_track_alvar" pkg="ar_track_alvar" type="individualMarkersNoKinect" respawn="false" output="screen" args="$(arg marker_size) $(arg max_new_marker_error) $(arg max_track_error) $(arg cam_image_topic) $(arg cam_info_topic) $(arg output_frame)" />
+    -->
+
+    <arg name="marker_size" default="19" />
+	<arg name="max_new_marker_error" default="0.08" />
+	<arg name="max_track_error" default="0.2" />
+	<arg name="cam_image_topic" default="/camera/rgb/image_color" />
+    <arg name="cam_info_topic" default="/camera/rgb/camera_info" />	
+    <arg name="output_frame" default="/camera_rgb_optical_frame" />
+	<node name="ar_track_alvar" pkg="ar_track_alvar" type="individualMarkersNoKinect" respawn="false" output="screen" args="$(arg marker_size) $(arg max_new_marker_error) $(arg max_track_error) $(arg cam_image_topic) $(arg cam_info_topic) $(arg output_frame)" />
+
 
 
     <node pkg="ar_slam_base" type="turtle_slam.py" name="slam" output="screen">
@@ -23,6 +34,12 @@
         <param name="initial_y" value="0.0"/>
         <param name="initial_theta" value="0.0"/>
     </node>
+
+    <!-- Run the costmap node -->
+
+    <node name="costmap_node" pkg="costmap_2d" type="costmap_2d_node" >
+        <rosparam file="/home/turtlebot/catkin_ws/src/ar_slam_base/costmap2d.yaml" command="load" ns="costmap" />
+    </node>   
 
 
 </launch>
