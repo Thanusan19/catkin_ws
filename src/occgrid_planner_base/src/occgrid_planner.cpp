@@ -127,6 +127,13 @@ class OccupancyGridPlanner {
             return true;
         }
 
+
+        double heuristic(const cv::Point & currP, const cv::Point & goalP) {
+            return hypot(goalP.x - currP.x, goalP.y - currP.y);
+		}
+
+
+
         // This is called when a new goal is posted by RViz. We don't use a
         // mutex here, because it can only be called in spinOnce.
         void target_callback(const geometry_msgs::PoseStampedConstPtr & msg) {
@@ -214,7 +221,7 @@ class OccupancyGridPlanner {
             // The core of Dijkstra's Algorithm, a sorted heap, where the first
             // element is always the closer to the start.
             Heap heap;
-            heap.insert(Heap::value_type(0, start));
+            heap.insert(Heap::value_type(heuristic(start,target), start)); //  Heap::value_type(0, start)
             while (!heap.empty()) {
                 // Select the cell at the top of the heap
                 Heap::iterator hit = heap.begin();
@@ -244,7 +251,7 @@ class OccupancyGridPlanner {
                         predecessor.at<cv::Vec2s>(dest) = cv::Vec2s(this_cell.x,this_cell.y);
                         cell_value(dest) = new_cost;
                         // And insert the selected cells in the map.
-                        heap.insert(Heap::value_type(new_cost,dest));
+                        heap.insert(Heap::value_type(new_cost+heuristic(dest,target),dest)); // Heap::value_type(new_cost,dest)
                     }
                 }
             }
@@ -322,4 +329,3 @@ int main(int argc, char * argv[]) {
         }
     }
 }
-
