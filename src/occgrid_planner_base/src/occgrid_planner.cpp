@@ -48,8 +48,7 @@ class OccupancyGridPlanner {
             frame_id_ = msg->header.frame_id;
             // Create an image to store the value of the grid.
             og_ = cv::Mat_<uint8_t>(msg->info.height, msg->info.width,0xFF);
-            og_center_ = cv::Point3f(-info_.origin.position.x/info_.resolution,
-                    -info_.origin.position.y/info_.resolution);
+            og_center_ = cv::Point3f(-info_.origin.position.x/info_.resolution,-info_.origin.position.y/info_.resolution,0);
 
             // Some variables to select the useful bounding box 
             unsigned int maxx=0, minx=msg->info.width, 
@@ -86,7 +85,7 @@ class OccupancyGridPlanner {
 			double dilation_size =radius/info_.resolution;
 			cv::Mat element = getStructuringElement( cv::MORPH_RECT,
 								   cv::Size( 2*dilation_size + 1, 2*dilation_size+1 ),
-								   cv::Point3f( dilation_size, dilation_size ) );
+								   cv::Point( dilation_size, dilation_size ) );
 			// Apply the dilation on obstacles (= erosion of black cells)
 			cv::erode( og_, og_, element );
 
@@ -122,6 +121,12 @@ class OccupancyGridPlanner {
                 cv::imshow( "OccGrid", og_rgb_ );
             }
         }
+
+
+
+        cv::Point point3fToPoint(const cv::Point3f & currPoint) {
+            return cv::Point(currPoint.x, currPoint.y);
+		}
 
         // Generic test if a point is within the occupancy grid
         bool isInGrid(const cv::Point3f & P) {
@@ -168,7 +173,7 @@ class OccupancyGridPlanner {
                 + og_center_;
             ROS_INFO("Planning target: %.2f %.2f -> %d %d",
                         pose.pose.position.x, pose.pose.position.y, target.x, target.y);
-            cv::circle(og_rgb_marked_,target, 10, cv::Scalar(0,0,255));
+            cv::circle(og_rgb_marked_,point3fToPoint(target), 10, cv::Scalar(0,0,255));
             cv::imshow( "OccGrid", og_rgb_marked_ );
             if (!isInGrid(target)) {
                 ROS_ERROR("Invalid target point (%.2f %.2f) -> (%d %d)",
@@ -176,8 +181,8 @@ class OccupancyGridPlanner {
                 return;
             }
             // Only accept target which are FREE in the grid (HW, Step 5).
-            if (og_(target) != FREE) {
-                ROS_ERROR("Invalid target point: occupancy = %d",og_(target));
+            if (og_(point3fToPoint(target)) != FREE) {
+                ROS_ERROR("Invalid target point: occupancy = %d",og_((point3fToPoint(target)));
                 return;
             }
 
@@ -191,7 +196,7 @@ class OccupancyGridPlanner {
             }
             ROS_INFO("Planning origin %.2f %.2f -> %d %d",
                     transform.getOrigin().x(), transform.getOrigin().y(), start.x, start.y);
-            cv::circle(og_rgb_marked_,start, 10, cv::Scalar(0,255,0));
+            cv::circle(og_rgb_marked_,point3fToPoint(start), 10, cv::Scalar(0,255,0));
             cv::imshow( "OccGrid", og_rgb_marked_ );
 
             if (!isInGrid(start)) {
@@ -201,8 +206,8 @@ class OccupancyGridPlanner {
             }
             // If the starting point is not FREE there is a bug somewhere, but
             // better to check
-            if (og_(start) != FREE) {
-                ROS_ERROR("Invalid start point: occupancy = %d",og_(start));
+            if (og_(point3fToPoint(start)) != FREE) {
+                ROS_ERROR("Invalid start point: occupancy = %d",og_(point3fToPoint(start)));
                 return;
             }
             ROS_INFO("Starting planning from (%d, %d) to (%d, %d)",start.x,start.y, target.x, target.y);
@@ -244,7 +249,7 @@ class OccupancyGridPlanner {
                         // outside the grid
                         continue;
                     }
-                    uint8_t og = og_(dest);
+                    uint8_t og = og_(point3fToPoint(dest));
                     if (og != FREE) {
                         // occupied or unknown
                         continue;
