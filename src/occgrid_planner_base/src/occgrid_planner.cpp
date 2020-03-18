@@ -29,9 +29,9 @@ class OccupancyGridPlanner {
         tf::TransformListener listener_;
 
         cv::Rect roi_;
-        cv::Mat_<uint8_t> og_, cropped_og_;
+        cv::Mat_<uint8_t> og_, cropped_og_, og_heading;
         cv::Mat_<cv::Vec3b> og_rgb_, og_rgb_marked_;
-        cv::Point og_center_;
+        cv::Point3f og_center_;
         nav_msgs::MapMetaData info_;
         std::string frame_id_;
         std::string base_link_;
@@ -40,7 +40,7 @@ class OccupancyGridPlanner {
         bool debug;
         double radius;
 
-        typedef std::multimap<float, cv::Point> Heap;
+        typedef std::multimap<float, cv::Point3f> Heap;
 
         // Callback for Occupancy Grids
         void og_callback(const nav_msgs::OccupancyGridConstPtr & msg) {
@@ -48,7 +48,7 @@ class OccupancyGridPlanner {
             frame_id_ = msg->header.frame_id;
             // Create an image to store the value of the grid.
             og_ = cv::Mat_<uint8_t>(msg->info.height, msg->info.width,0xFF);
-            og_center_ = cv::Point(-info_.origin.position.x/info_.resolution,
+            og_center_ = cv::Point3f(-info_.origin.position.x/info_.resolution,
                     -info_.origin.position.y/info_.resolution);
 
             // Some variables to select the useful bounding box 
@@ -86,9 +86,11 @@ class OccupancyGridPlanner {
 			double dilation_size =radius/info_.resolution;
 			cv::Mat element = getStructuringElement( cv::MORPH_RECT,
 								   cv::Size( 2*dilation_size + 1, 2*dilation_size+1 ),
-								   cv::Point( dilation_size, dilation_size ) );
+								   cv::Point3f( dilation_size, dilation_size ) );
 			// Apply the dilation on obstacles (= erosion of black cells)
 			cv::erode( og_, og_, element );
+
+            og_heading=cv::Mat_<uint8_t>(3,(msg->info.height, msg->info.width),0xFF);
 
             if (!ready) {
                 ready = true;
@@ -122,7 +124,7 @@ class OccupancyGridPlanner {
         }
 
         // Generic test if a point is within the occupancy grid
-        bool isInGrid(const cv::Point & P) {
+        bool isInGrid(const cv::Point3f & P) {
             if ((P.x < 0) || (P.x >= (signed)info_.width) 
                     || (P.y < 0) || (P.y >= (signed)info_.height)) {
                 return false;
@@ -131,7 +133,7 @@ class OccupancyGridPlanner {
         }
 
 
-        double heuristic(const cv::Point & currP, const cv::Point & goalP) {
+        double heuristic(const cv::Point3f & currP, const cv::Point3f & goalP) {
             return hypot(goalP.x - currP.x, goalP.y - currP.y);
 		}
 
@@ -162,7 +164,7 @@ class OccupancyGridPlanner {
             }
             // Now scale the target to the grid resolution and shift it to the
             // grid center.
-            cv::Point target = cv::Point(pose.pose.position.x / info_.resolution, pose.pose.position.y / info_.resolution)
+            cv::Point3f target = cv::Point3f(pose.pose.position.x / info_.resolution, pose.pose.position.y / info_.resolution)
                 + og_center_;
             ROS_INFO("Planning target: %.2f %.2f -> %d %d",
                         pose.pose.position.x, pose.pose.position.y, target.x, target.y);
@@ -180,11 +182,11 @@ class OccupancyGridPlanner {
             }
 
             // Now get the current point in grid coordinates.
-            cv::Point start;
+            cv::Point3f start;
             if (debug) {
                 start = og_center_;
             } else {
-                start = cv::Point(transform.getOrigin().x() / info_.resolution, transform.getOrigin().y() / info_.resolution)
+                start = cv::Point3f(transform.getOrigin().x() / info_.resolution, transform.getOrigin().y() / info_.resolution)
                     + og_center_;
             }
             ROS_INFO("Planning origin %.2f %.2f -> %d %d",
@@ -210,14 +212,14 @@ class OccupancyGridPlanner {
             cv::Mat_<float> cell_value(og_.size(), NAN);// this is a matrice with the same dim as "og_" and having float values
             // For each cell we need to store a pointer to the coordinates of
             // its best predecessor. 
-            cv::Mat_<cv::Vec2s> predecessor(og_.size()); 
+            cv::Mat_<cv::Vec3s> predecessor(og_.size()); 
 
             // The neighbour of a given cell in relative coordinates. The order
             // is important. If we use 4-connexity, then we can use only the
             // first 4 values of the array. If we use 8-connexity we use the
             // full array.
-            cv::Point neighbours[8] = {cv::Point(1,0), cv::Point(0,1), cv::Point(-1,0), cv::Point(0, -1),
-                cv::Point(1,1), cv::Point(-1,1), cv::Point(-1,-1), cv::Point(1,-1)};
+            cv::Point3f neighbours[8] = {cv::Point3f(1,0,0), cv::Point3f(0,1,0), cv::Point3f(-1,0,0), cv::Point3f(0,-1,0),
+                cv::Point3f(1,1,-90), cv::Point3f(-1,1,90), cv::Point3f(-1,-1,90), cv::Point3f(1,-1,-90)};
             // Cost of displacement corresponding the neighbours. Diagonal
             // moves are 44% longer.
             float cost[8] = {1, 1, 1, 1, sqrt(2), sqrt(2), sqrt(2), sqrt(2)};
@@ -230,14 +232,14 @@ class OccupancyGridPlanner {
                 // Select the cell at the top of the heap
                 Heap::iterator hit = heap.begin();
                 // the cell it contains is this_cell
-                cv::Point this_cell = hit->second;
+                cv::Point3f this_cell = hit->second;
                 // and its score is this_cost
                 float this_cost = hit->first;
                 // We can remove it from the heap now.
                 heap.erase(hit);
                 // Now see where we can go from this_cell
                 for (unsigned int i=0;i<neighbourhood_;i++) {
-                    cv::Point dest = this_cell + neighbours[i];
+                    cv::Point3f dest = this_cell + neighbours[i];
                     if (!isInGrid(dest)) {
                         // outside the grid
                         continue;
@@ -252,7 +254,7 @@ class OccupancyGridPlanner {
                     if (isnan(cv) || (new_cost < cv)) {
                         // found shortest path (or new path), updating the
                         // predecessor and the value of the cell
-                        predecessor.at<cv::Vec2s>(dest) = cv::Vec2s(this_cell.x,this_cell.y);
+                        predecessor.at<cv::Vec3s>(dest) = cv::Vec2s(this_cell.x,this_cell.y);
                         cell_value(dest) = new_cost;
                         // And insert the selected cells in the map.
                         heap.insert(Heap::value_type(new_cost+heuristic(dest,target),dest)); // Heap::value_type(new_cost,dest)
@@ -267,10 +269,10 @@ class OccupancyGridPlanner {
             ROS_INFO("Planning completed");
             // Now extract the path by starting from goal and going through the
             // predecessors until the starting point
-            std::list<cv::Point> lpath;
+            std::list<cv::Point3f> lpath;
             while (target != start) {
                 lpath.push_front(target);
-                cv::Vec2s p = predecessor(target);
+                cv::Vec3s p = predecessor(target);
                 target.x = p[0]; target.y = p[1];
             }
             lpath.push_front(start);
@@ -279,13 +281,13 @@ class OccupancyGridPlanner {
             path.header.stamp = ros::Time::now();
             path.header.frame_id = frame_id_;
             path.poses.resize(lpath.size());
-            std::list<cv::Point>::const_iterator it = lpath.begin();
+            std::list<cv::Point3f>::const_iterator it = lpath.begin();
             unsigned int ipose = 0;
             while (it != lpath.end()) {
                 // time stamp is not updated because we're not creating a
                 // trajectory at this stage
                 path.poses[ipose].header = path.header;
-                cv::Point P = *it - og_center_;// Put the point "P" on the top-left of the box
+                cv::Point3f P = *it - og_center_;// Put the point "P" on the top-left of the box
                 path.poses[ipose].pose.position.x = (P.x) * info_.resolution;
                 path.poses[ipose].pose.position.y = (P.y) * info_.resolution;
                 path.poses[ipose].pose.orientation.x = 0;
