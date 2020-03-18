@@ -57,6 +57,8 @@ class OccupancyGridPlanner {
             // Convert the representation into something easy to display.
             for (unsigned int j=0;j<msg->info.height;j++) {
                 for (unsigned int i=0;i<msg->info.width;i++) {
+                    //"data" is not a matrice but a list which contains all the first column 
+                    //elements then the second column ...  
                     int8_t v = msg->data[j*msg->info.width + i];
                     switch (v) {
                         case 0: 
@@ -80,6 +82,7 @@ class OccupancyGridPlanner {
                 }
             }
 
+            //STEP 1 
 			double dilation_size =radius/info_.resolution;
 			cv::Mat element = getStructuringElement( cv::MORPH_RECT,
 								   cv::Size( 2*dilation_size + 1, 2*dilation_size+1 ),
@@ -188,6 +191,7 @@ class OccupancyGridPlanner {
                     transform.getOrigin().x(), transform.getOrigin().y(), start.x, start.y);
             cv::circle(og_rgb_marked_,start, 10, cv::Scalar(0,255,0));
             cv::imshow( "OccGrid", og_rgb_marked_ );
+
             if (!isInGrid(start)) {
                 ROS_ERROR("Invalid starting point (%.2f %.2f) -> (%d %d)",
                         transform.getOrigin().x(), transform.getOrigin().y(), start.x, start.y);
@@ -203,10 +207,10 @@ class OccupancyGridPlanner {
             // Here the Dijskstra algorithm starts 
             // The best distance to the goal computed so far. This is
             // initialised with Not-A-Number. 
-            cv::Mat_<float> cell_value(og_.size(), NAN);
+            cv::Mat_<float> cell_value(og_.size(), NAN);// this is a matrice with the same dim as "og_" and having float values
             // For each cell we need to store a pointer to the coordinates of
             // its best predecessor. 
-            cv::Mat_<cv::Vec2s> predecessor(og_.size());
+            cv::Mat_<cv::Vec2s> predecessor(og_.size()); 
 
             // The neighbour of a given cell in relative coordinates. The order
             // is important. If we use 4-connexity, then we can use only the
@@ -281,7 +285,7 @@ class OccupancyGridPlanner {
                 // time stamp is not updated because we're not creating a
                 // trajectory at this stage
                 path.poses[ipose].header = path.header;
-                cv::Point P = *it - og_center_;
+                cv::Point P = *it - og_center_;// Put the point "P" on the top-left of the box
                 path.poses[ipose].pose.position.x = (P.x) * info_.resolution;
                 path.poses[ipose].pose.position.y = (P.y) * info_.resolution;
                 path.poses[ipose].pose.orientation.x = 0;
@@ -305,6 +309,7 @@ class OccupancyGridPlanner {
             nh_.param("debug",debug,false);
             nh_.param("neighbourhood",nbour,nbour);
             nh_.param("radius",radius,0.3);
+            //nbour = number possible movements from one box (4 or 8 (if diagonal mvt is allowed)
             switch (nbour) {
                 case 4: neighbourhood_ = nbour; break;
                 case 8: neighbourhood_ = nbour; break;
