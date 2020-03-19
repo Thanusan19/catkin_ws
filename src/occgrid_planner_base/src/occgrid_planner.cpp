@@ -228,7 +228,7 @@ class OccupancyGridPlanner {
             // element is always the closer to the start.
             Heap heap;
             heap.insert(Heap::value_type(heuristic(start,target), start)); //  Heap::value_type(0, start)
-            while (!heap.empty()) {
+            while (!heap.empty()) {                                                                                 
                 // Select the cell at the top of the heap
                 Heap::iterator hit = heap.begin();
                 // the cell it contains is this_cell
