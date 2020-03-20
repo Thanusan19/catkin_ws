@@ -183,7 +183,7 @@ class OccupancyGridPlanner {
             }
             // Only accept target which are FREE in the grid (HW, Step 5).
             if (og_(point3iToPoint(target)) != FREE) {
-                ROS_ERROR("Invalid target point: occupancy = %d",og_((point3iToPoint(target)));
+                //ROS_ERROR("Invalid target point: occupancy = %d",og_(point3iToPoint(target));
                 return;
             }
 
@@ -210,7 +210,7 @@ class OccupancyGridPlanner {
             // If the starting point is not FREE there is a bug somewhere, but
             // better to check
             if (og_(point3iToPoint(start)) != FREE) {
-                ROS_ERROR("Invalid start point: occupancy = %d",og_(point3iToPoint(start)));
+                //ROS_ERROR("Invalid start point: occupancy = %d",og_(point3iToPoint(start)));
                 return;
             }
             ROS_INFO("Starting planning from (%d, %d %d) to (%d, %d %d)",start.x,start.y,start.z, target.x, target.y,target.z);
@@ -228,29 +228,46 @@ class OccupancyGridPlanner {
             // is important. If we use 4-connexity, then we can use only the
             // first 4 values of the array. If we use 8-connexity we use the
             // full array.
-            cv::Point3i neighbours[8][5];
+            cv::Point3i neighbours[8][5]={
+                //Angle= 0
+                {cv::Point3i(1,0,0), cv::Point3i(1,1,2), cv::Point3i(1,-1,6), cv::Point3i(2,1,1), cv::Point3i(2,-1,-7)},
+                //Angle= 45
+                {cv::Point3i(1,1,1), cv::Point3i(0,1,3), cv::Point3i(1,0,7), cv::Point3i(2,1,0), cv::Point3i(1,2,2)},
+                //Angle= 90
+                {cv::Point3i(1,0,2), cv::Point3i(1,1,0), cv::Point3i(-1,1,4), cv::Point3i(1,2,1), cv::Point3i(-1,2,3)},
+                //Angle= 135
+                {cv::Point3i(-1,1,3), cv::Point3i(0,1,1), cv::Point3i(-1,0,5), cv::Point3i(-1,2,2), cv::Point3i(-2,1,4)},
+                //Angle= 180
+                {cv::Point3i(-1,0,4), cv::Point3i(-1,1,2), cv::Point3i(-1,-1,6), cv::Point3i(-2,1,3), cv::Point3i(-2,-1,5)},
+                //Angle= 225
+                {cv::Point3i(-1,-1,5), cv::Point3i(-1,0,3), cv::Point3i(0,-1,7), cv::Point3i(-2,-1,4), cv::Point3i(-1,-2,6)},
+                //Angle= 270
+                {cv::Point3i(0,-1,6), cv::Point3i(-1,-1,4), cv::Point3i(1,-1,0), cv::Point3i(-1,-2,5), cv::Point3i(1,-2,7)},
+                //Angle= 315
+                {cv::Point3i(1,-1,7), cv::Point3i(0,-1,5), cv::Point3i(1,0,1), cv::Point3i(1,-2,6), cv::Point3i(2,-1,0)}
+            };
             //Angle= 0
-            neighbours[0][:] = {cv::Point3i(1,0,0), cv::Point3i(1,1,90), cv::Point3i(-1,-1,-90), cv::Point3i(2,1,45), cv::Point3i(2,-1,-45)};
+            /*neighbours[0] = {cv::Point3i(1,0,0), cv::Point3i(1,1,2), cv::Point3i(1,-1,6), cv::Point3i(2,1,1), cv::Point3i(2,-1,-7)};
             //Angle= 45
-            neighbours[1][:] = {cv::Point3i(1,1,0), cv::Point3i(0,1,90), cv::Point3i(1,0,-90), cv::Point3i(2,1,45), cv::Point3i(1,2,-45)};
+            neighbours[1] = {cv::Point3i(1,1,1), cv::Point3i(0,1,3), cv::Point3i(1,0,7), cv::Point3i(2,1,0), cv::Point3i(1,2,2)};
             //Angle= 90
-            neighbours[2][:] = {cv::Point3i(1,0,0), cv::Point3i(1,1,90), cv::Point3i(-1,-1,-90), cv::Point3i(2,1,45), cv::Point3i(2,-1,-45)};
+            neighbours[2] = {cv::Point3i(1,0,2), cv::Point3i(1,1,0), cv::Point3i(-1,1,4), cv::Point3i(1,2,1), cv::Point3i(-1,2,3)};
             //Angle= 135
-            neighbours[3][:] = {cv::Point3i(1,0,0), cv::Point3i(1,1,90), cv::Point3i(-1,-1,-90), cv::Point3i(2,1,45), cv::Point3i(2,-1,-45)};
+            neighbours[3] = {cv::Point3i(-1,1,3), cv::Point3i(0,1,1), cv::Point3i(-1,0,5), cv::Point3i(-1,2,2), cv::Point3i(-2,1,4)};
             //Angle= 180
-            neighbours[4][:] = {cv::Point3i(1,0,0), cv::Point3i(1,1,90), cv::Point3i(-1,-1,-90), cv::Point3i(2,1,45), cv::Point3i(2,-1,-45)};
+            neighbours[4] = {cv::Point3i(-1,0,4), cv::Point3i(-1,1,2), cv::Point3i(-1,-1,6), cv::Point3i(-2,1,3), cv::Point3i(-2,-1,5)};
             //Angle= 225
-            neighbours[5][:] = {cv::Point3i(1,0,0), cv::Point3i(1,1,90), cv::Point3i(-1,-1,-90), cv::Point3i(2,1,45), cv::Point3i(2,-1,-45)};
+            neighbours[5] = {cv::Point3i(-1,-1,5), cv::Point3i(-1,0,3), cv::Point3i(0,-1,7), cv::Point3i(-2,-1,4), cv::Point3i(-1,-2,6)};
             //Angle= 270
-            neighbours[6][:] = {cv::Point3i(1,0,0), cv::Point3i(1,1,90), cv::Point3i(-1,-1,-90), cv::Point3i(2,1,45), cv::Point3i(2,-1,-45)};
+            neighbours[6] = {cv::Point3i(0,-1,6), cv::Point3i(-1,-1,4), cv::Point3i(1,-1,0), cv::Point3i(-1,-2,5), cv::Point3i(1,-2,7)};
             //Angle= 315
-            neighbours[7][:] = {cv::Point3i(1,0,0), cv::Point3i(1,1,90), cv::Point3i(-1,-1,-90), cv::Point3i(2,1,45), cv::Point3i(2,-1,-45)};
+            neighbours[7] = {cv::Point3i(1,-1,7), cv::Point3i(0,-1,5), cv::Point3i(1,0,1), cv::Point3i(1,-2,6), cv::Point3i(2,-1,0)};*/
 
             // Cost of displacement corresponding the neighbours. Diagonal
             // moves are 44% longer.
 
             // float cost[8] = {1, 1, 1, 1, sqrt(2), sqrt(2), sqrt(2), sqrt(2)};
-            float cost[2][5] = {{1, 1, 1, 2, 2},{sqrt(2), 1, 1, 2, 2})};
+            float cost[2][5] = {{1, 1, 1, 2, 2},{sqrt(2), 1, 1, 2, 2}};
             // The core of Dijkstra's Algorithm, a sorted heap, where the first
             // element is always the closer to the start.
             Heap heap;
@@ -295,7 +312,7 @@ class OccupancyGridPlanner {
             }
             if (isnan(cell_value(target.x,target.y,target.z))) {
                 // No path found
-                ROS_ERROR("No path found from (%d, %d) to (%d, %d)",start.x,start.y,,start.z,target.x,target.y,target.z);
+                ROS_ERROR("No path found from (%d, %d) to (%d, %d)",start.x,start.y,start.z,target.x,target.y,target.z);
                 return;
             }
             ROS_INFO("Planning completed");
@@ -322,10 +339,14 @@ class OccupancyGridPlanner {
                 cv::Point3i P = *it - og_center_;// Put the point "P" on the top-left of the box
                 path.poses[ipose].pose.position.x = (P.x) * info_.resolution;
                 path.poses[ipose].pose.position.y = (P.y) * info_.resolution;
-                path.poses[ipose].pose.orientation.x = 0;
-                path.poses[ipose].pose.orientation.y = 0;
-                path.poses[ipose].pose.orientation.z = 0;
-                path.poses[ipose].pose.orientation.w = 1;
+                
+                tf::Quaternion q = tf::createQuaternionFromRPY(0,0,P.z);
+                tf::quaternionTFToMsg(q, path.poses[ipose].pose.orientation);
+
+                //path.poses[ipose].pose.orientation.x = 0;
+                //path.poses[ipose].pose.orientation.y = 0;
+                //path.poses[ipose].pose.orientation.z = 0;
+                //path.poses[ipose].pose.orientation.w = 1;
                 ipose++;
                 it ++;
             }
