@@ -1,7 +1,7 @@
 <launch>
 
   <node pkg="occgrid_planner_base" type="occgrid_planner_b" name="planner" output="screen">
-    <param name="neighbourhood" value="8"/>
+    <param name="neighbourhood" value="5"/><!--8-->
     <param name="base_frame" value="/bubbleRob"/><!--body-->
     <param name="debug" value="False"/>
     <remap from="/planner/occ_grid" to="/map"/>
