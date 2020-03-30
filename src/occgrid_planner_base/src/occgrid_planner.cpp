@@ -228,7 +228,26 @@ class OccupancyGridPlanner {
             // is important. If we use 4-connexity, then we can use only the
             // first 4 values of the array. If we use 8-connexity we use the
             // full array.
+
             cv::Point3i neighbours[8][5]={
+                //Angle= 0
+                {cv::Point3i(1,0,0), cv::Point3i(1,1,1), cv::Point3i(1,-1,-1), cv::Point3i(0,0,1), cv::Point3i(0,0,-1)},
+                //Angle= 45
+                {cv::Point3i(1,1,0), cv::Point3i(0,1,1), cv::Point3i(1,0,-1), cv::Point3i(0,0,1), cv::Point3i(0,0,-1)},
+                //Angle= 90
+                {cv::Point3i(0,1,0), cv::Point3i(-1,1,1), cv::Point3i(1,1,-1), cv::Point3i(0,0,1), cv::Point3i(0,0,-1)},
+                //Angle= 135
+                {cv::Point3i(-1,1,0), cv::Point3i(-1,0,1), cv::Point3i(0,1,-1), cv::Point3i(0,0,1), cv::Point3i(0,0,-1)},
+                //Angle= 180
+                {cv::Point3i(-1,0,0), cv::Point3i(-1,-1,1), cv::Point3i(-1,1,-1), cv::Point3i(0,0,1), cv::Point3i(0,0,-1)},
+                //Angle= 225
+                {cv::Point3i(-1,-1,0), cv::Point3i(0,-1,1), cv::Point3i(-1,0,-1), cv::Point3i(0,0,1), cv::Point3i(0,0,-1)},
+                //Angle= 270
+                {cv::Point3i(0,-1,0), cv::Point3i(1,-1,1), cv::Point3i(-1,-1,-1), cv::Point3i(0,0,1), cv::Point3i(0,0,-1)},
+                //Angle= 315
+                {cv::Point3i(1,-1,0), cv::Point3i(1,0,1), cv::Point3i(0,-1,-1), cv::Point3i(0,0,1), cv::Point3i(0,0,-1)}
+            };
+            /*cv::Point3i neighbours[8][5]={
                 //Angle= 0
                 {cv::Point3i(1,0,0), cv::Point3i(1,1,2), cv::Point3i(1,-1,6), cv::Point3i(2,1,1), cv::Point3i(2,-1,-7)},
                 //Angle= 45
@@ -245,23 +264,7 @@ class OccupancyGridPlanner {
                 {cv::Point3i(0,-1,6), cv::Point3i(-1,-1,4), cv::Point3i(1,-1,0), cv::Point3i(-1,-2,5), cv::Point3i(1,-2,7)},
                 //Angle= 315
                 {cv::Point3i(1,-1,7), cv::Point3i(0,-1,5), cv::Point3i(1,0,1), cv::Point3i(1,-2,6), cv::Point3i(2,-1,0)}
-            };
-            //Angle= 0
-            /*neighbours[0] = {cv::Point3i(1,0,0), cv::Point3i(1,1,2), cv::Point3i(1,-1,6), cv::Point3i(2,1,1), cv::Point3i(2,-1,-7)};
-            //Angle= 45
-            neighbours[1] = {cv::Point3i(1,1,1), cv::Point3i(0,1,3), cv::Point3i(1,0,7), cv::Point3i(2,1,0), cv::Point3i(1,2,2)};
-            //Angle= 90
-            neighbours[2] = {cv::Point3i(1,0,2), cv::Point3i(1,1,0), cv::Point3i(-1,1,4), cv::Point3i(1,2,1), cv::Point3i(-1,2,3)};
-            //Angle= 135
-            neighbours[3] = {cv::Point3i(-1,1,3), cv::Point3i(0,1,1), cv::Point3i(-1,0,5), cv::Point3i(-1,2,2), cv::Point3i(-2,1,4)};
-            //Angle= 180
-            neighbours[4] = {cv::Point3i(-1,0,4), cv::Point3i(-1,1,2), cv::Point3i(-1,-1,6), cv::Point3i(-2,1,3), cv::Point3i(-2,-1,5)};
-            //Angle= 225
-            neighbours[5] = {cv::Point3i(-1,-1,5), cv::Point3i(-1,0,3), cv::Point3i(0,-1,7), cv::Point3i(-2,-1,4), cv::Point3i(-1,-2,6)};
-            //Angle= 270
-            neighbours[6] = {cv::Point3i(0,-1,6), cv::Point3i(-1,-1,4), cv::Point3i(1,-1,0), cv::Point3i(-1,-2,5), cv::Point3i(1,-2,7)};
-            //Angle= 315
-            neighbours[7] = {cv::Point3i(1,-1,7), cv::Point3i(0,-1,5), cv::Point3i(1,0,1), cv::Point3i(1,-2,6), cv::Point3i(2,-1,0)};*/
+            };*/
 
             // Cost of displacement corresponding the neighbours. Diagonal
             // moves are 44% longer.
