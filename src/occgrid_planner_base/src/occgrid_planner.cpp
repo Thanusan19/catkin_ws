@@ -340,7 +340,7 @@ class OccupancyGridPlanner {
                 path.poses[ipose].pose.position.x = (P.x) * info_.resolution;
                 path.poses[ipose].pose.position.y = (P.y) * info_.resolution;
                 
-                tf::Quaternion q = tf::createQuaternionFromRPY(0,0,P.z);
+                tf::Quaternion q = tf::createQuaternionFromRPY(0,0,P.z*M_PI/4);
                 tf::quaternionTFToMsg(q, path.poses[ipose].pose.orientation);
 
                 //path.poses[ipose].pose.orientation.x = 0;

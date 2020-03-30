@@ -1,0 +1,22 @@
+<launch>
+  <node pkg="gmapping" type="slam_gmapping" name="slam_gmapping" output="screen">
+    <param name="base_frame" value="/bubbleRob"/>
+    <param name="odom_frame" value="/odom"/>
+    <param name="maxRange" value="10.0"/>
+    <param name="map_update_interval" value="1.0"/>
+    <param name="linearUpdate" value="0.1"/>
+    <param name="angularUpdate" value="0.1"/>
+    <param name="xmin" value="-15"/>
+    <param name="ymin" value="-15"/>
+    <param name="xmax" value="15"/>
+    <param name="ymax" value="15"/>
+    <remap from="/scan" to="/vrep/hokuyo"/>
+  </node>
+
+  <node pkg="gtlwifi" type="bubble_odom.py" name="odom" output="screen">
+      <param name="base_line" value="0.2"/>
+      <param name="wheel_radius" value="0.04"/>
+      <param name="body_frame" value="/bubbleRob"/>
+  </node>
+
+</launch>
