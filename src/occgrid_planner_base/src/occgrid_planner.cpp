@@ -297,7 +297,7 @@ class OccupancyGridPlanner {
                         continue;
                     }
                     uint8_t og = og_(point3iToPoint(dest));
-                    if (og != FREE) {
+                    if(og == OCCUPIED){ //(og != FREE) {
                         // occupied or unknown
                         continue;
                     }

@@ -27,6 +27,14 @@ class PathFollower {
         ros::Subscriber traj_sub_;
         ros::Publisher twist_pub_;
         ros::Publisher pose2d_pub_;
+
+        //STEP5
+        ros::Subscriber target_sub_;
+        ros::Publisher target_pub_;
+        ros::Time last_goal_time;
+        geometry_msgs::PoseStamped pose;
+
+
         double look_ahead_;
         double Kx_,Ky_,Ktheta_;
         double max_rot_speed_;
@@ -62,6 +70,13 @@ class PathFollower {
             printf("Current error: %+6.2f %+6.2f %+6.2f\n",result.x,result.y,result.theta*180./M_PI);
             return result;
         }
+
+        //STEP5
+        void target_callback(const geometry_msgs::PoseStampedConstPtr & msg){
+            pose=*msg;
+            last_goal_time = ros::Time::now();
+
+        }
         
     public:
         PathFollower(): nh_("~") {
@@ -76,6 +91,12 @@ class PathFollower {
             traj_sub_ = nh_.subscribe<occgrid_planner_base::Trajectory>("traj",1,&PathFollower::traj_cb,this);
             twist_pub_ = nh_.advertise<geometry_msgs::Twist>("twistCommand",1);
             pose2d_pub_ = nh_.advertise<geometry_msgs::Pose2D>("error",1);
+
+            //STEP5
+            target_sub_ = nh_.subscribe("goal",1,&PathFollower::target_callback,this);
+            target_pub_ = nh_.advertise<geometry_msgs::PoseStamped>("goal",1);
+
+
         };
             
         inline double sat(double x, double max_x) {
@@ -104,6 +125,7 @@ class PathFollower {
                     geometry_msgs::Pose2D error = computeError(now,it->second);
                     pose2d_pub_.publish(error);
                     geometry_msgs::Twist twist;
+
                     if (final && (error.x < 0.1)) {
                         // Finished
                         twist.linear.x = 0.0;
@@ -119,6 +141,13 @@ class PathFollower {
                         printf("Twist: %.2f %.2f\n",twist.linear.x,twist.angular.z);
                     }
                     twist_pub_.publish(twist);
+
+                    //STEP5
+                    if ((last_goal_time-ros::Time::now()).toSec()>5){
+                        target_pub_.publish(pose);
+                    }
+
+
                 } else {
                     geometry_msgs::Twist twist;
                     twist_pub_.publish(twist);
