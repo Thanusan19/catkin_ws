@@ -69,7 +69,7 @@ namespace robot_control_base
         field(a_f)
       {}
 
-      T (FollowLineConfig::* field);
+      T FollowLineConfig::* field;
 
       virtual void clamp(FollowLineConfig &config, const FollowLineConfig &max, const FollowLineConfig &min) const
       {
@@ -216,7 +216,7 @@ namespace robot_control_base
         }
       }
 
-      T (PT::* field);
+      T PT::* field;
       std::vector<FollowLineConfig::AbstractGroupDescriptionConstPtr> groups;
     };
 

@@ -69,7 +69,7 @@ namespace robot_control_base
         field(a_f)
       {}
 
-      T (GotoXYThetaConfig::* field);
+      T GotoXYThetaConfig::* field;
 
       virtual void clamp(GotoXYThetaConfig &config, const GotoXYThetaConfig &max, const GotoXYThetaConfig &min) const
       {
@@ -216,7 +216,7 @@ namespace robot_control_base
         }
       }
 
-      T (PT::* field);
+      T PT::* field;
       std::vector<GotoXYThetaConfig::AbstractGroupDescriptionConstPtr> groups;
     };
 

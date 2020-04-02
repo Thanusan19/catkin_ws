@@ -291,7 +291,7 @@ class OccupancyGridPlanner {
                 for (unsigned int i=0;i<neighbourhood_;i++) {//5
 
                     cv::Point3i dest = this_cell + neighbours[this_cell.z][i];
-                    dest.z = dest.z %8;
+                    dest.z = (dest.z + 8) % 8;
                     if (!isInGrid(dest)) {
                         // outside the grid
                         continue;
