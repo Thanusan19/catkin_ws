@@ -40,7 +40,8 @@
         <!-- While developing -->
         <param name="lib_path" value="$(find floor_nav)/../../devel/share/floor_nav/tasks"/>
         <param name="base_frame" value="bubbleRob"/>
-        <param name="reference_frame" value="map"/> <!--odom-->
+
+        <param name="reference_frame" value="map"/>
         <!-- <param name="reference_frame" value="map"/>-->
         <remap from="/scan" to="/vrep/hokuyo"/>
         <remap from="/vrep/depthSensor" to="/depth_registered/points"/>

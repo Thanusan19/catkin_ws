@@ -28,7 +28,7 @@ class BubbleSLAM:
         rospy.loginfo("Starting bubble rob slam")
         self.ignore_id = rospy.get_param("~ignore_id",False)
         self.target_frame = rospy.get_param("~target_frame","/map")
-        self.body_frame = rospy.get_param("~body_frame","/base_link")
+        self.body_frame = rospy.get_param("~body_frame","/bubbleRob")
         self.odom_frame = rospy.get_param("~odom_frame","/odom")
         self.ar_precision = rospy.get_param("~ar_precision",0.5)
         self.position_uncertainty = rospy.get_param("~position_uncertainty",0.01)
