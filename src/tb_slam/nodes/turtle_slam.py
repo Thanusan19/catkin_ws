@@ -16,7 +16,7 @@ from numpy import mat,vstack,diag, zeros, eye
 from numpy.linalg import inv
 from math import atan2, hypot, pi, cos, sin, fmod, sqrt
 
-from ar_track_alvar.msg import AlvarMarkers
+from ar_track_alvar_msgs.msg import AlvarMarkers
 
 def norm_angle(x):
     return fmod(x+pi,2*pi)-pi
@@ -28,7 +28,7 @@ class BubbleSLAM:
         rospy.loginfo("Starting bubble rob slam")
         self.ignore_id = rospy.get_param("~ignore_id",False)
         self.target_frame = rospy.get_param("~target_frame","/map")
-        self.body_frame = rospy.get_param("~body_frame","/base_link")
+        self.body_frame = rospy.get_param("~body_frame","/bubbleRob")
         self.odom_frame = rospy.get_param("~odom_frame","/odom")
         self.ar_precision = rospy.get_param("~ar_precision",0.5)
         self.position_uncertainty = rospy.get_param("~position_uncertainty",0.01)
