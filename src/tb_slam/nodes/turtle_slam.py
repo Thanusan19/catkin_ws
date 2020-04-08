@@ -125,8 +125,13 @@ class BubbleSLAM:
         for m in markers.markers:
             if m.id > 32:
                 continue
-            lasttf = rospy.Time(0) #m.header.stamp
+            lasttf = m.header.stamp #m.header.stamp or 0
+
+            # if not self.listener.waitForTransform(self.body_frame,m.header.frame_id, lasttf, rospy.Duration(1.0)):
+            #     continue
+            
             self.listener.waitForTransform(self.body_frame,m.header.frame_id, lasttf, rospy.Duration(1.0))
+
             m_pose = PointStamped()
             m_pose.header = m.header
             m_pose.point = m.pose.pose.position
@@ -222,8 +227,8 @@ class BubbleSLAM:
                 marker.pose.orientation.y = 0
                 marker.pose.orientation.z = 1
                 marker.pose.orientation.w = 0
-                marker.scale.x = 0.2;#3*sqrt(self.P[l,l])
-                marker.scale.y = 0.2;#3*sqrt(self.P[l+1,l+1]);
+                marker.scale.x = 3*sqrt(self.P[l,l]);
+                marker.scale.y = 3*sqrt(self.P[l+1,l+1]);
                 marker.scale.z = 0.1;
                 marker.color.a = 1.0;
                 marker.color.r = 0.25;
