@@ -1,6 +1,8 @@
 <launch>
     <node pkg="costmap_2d" type="costmap_2d_node" name="costmap" output="screen">
         <rosparam file="$(find turtlebot_navigation)/param/costmap_common_params.yaml" command="load" ns="costmap/obstacle_layer" />
+       <!--<rosparam file="$(find ar_slam_base)/costmap2d.yaml" command="load" ns="costmap/obstacle_layer" />-->
+
 
         <param name="costmap/global_frame" value="map"/><!--ar_map-->
         <param name="costmap/robot_base_frame" value="bubbleRob"/>
@@ -21,5 +23,11 @@
 	<param name="costmap/robot_radius" value="0.05"/>
 
     </node>
+
+    <!-- Run the costmap node -->
+
+    <!--<node name="costmap_node" pkg="costmap_2d" type="costmap_2d_node" >
+        <rosparam file="$(find ar_slam_base)/costmap2d.yaml" command="load" ns="costmap" />
+    </node>  -->
 
 </launch>

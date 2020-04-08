@@ -1,6 +1,5 @@
 <launch>
 
-
     <node pkg="tb_slam" type="turtle_slam.py" name="slam" output="screen">
         <param name="ignore_id" value="False"/>
         <param name="target_frame" value="/map"/>

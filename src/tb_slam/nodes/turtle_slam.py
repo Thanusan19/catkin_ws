@@ -28,7 +28,7 @@ class BubbleSLAM:
         rospy.loginfo("Starting bubble rob slam")
         self.ignore_id = rospy.get_param("~ignore_id",False)
         self.target_frame = rospy.get_param("~target_frame","/map")
-        self.body_frame = rospy.get_param("~body_frame","/bubbleRob")
+        self.body_frame = rospy.get_param("~body_frame","/base_link")
         self.odom_frame = rospy.get_param("~odom_frame","/odom")
         self.ar_precision = rospy.get_param("~ar_precision",0.5)
         self.position_uncertainty = rospy.get_param("~position_uncertainty",0.01)
@@ -125,11 +125,9 @@ class BubbleSLAM:
         for m in markers.markers:
             if m.id > 32:
                 continue
-            lasttf = m.header.stamp #m.header.stamp or 0
 
-            # if not self.listener.waitForTransform(self.body_frame,m.header.frame_id, lasttf, rospy.Duration(1.0)):
-            #     continue
-            
+            lasttf = m.header.stamp
+
             self.listener.waitForTransform(self.body_frame,m.header.frame_id, lasttf, rospy.Duration(1.0))
 
             m_pose = PointStamped()
@@ -227,7 +225,7 @@ class BubbleSLAM:
                 marker.pose.orientation.y = 0
                 marker.pose.orientation.z = 1
                 marker.pose.orientation.w = 0
-                marker.scale.x = 3*sqrt(self.P[l,l]);
+                marker.scale.x = 3*sqrt(self.P[l,l])
                 marker.scale.y = 3*sqrt(self.P[l+1,l+1]);
                 marker.scale.z = 0.1;
                 marker.color.a = 1.0;
