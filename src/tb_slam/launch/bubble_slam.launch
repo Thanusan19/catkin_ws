@@ -1,43 +1,6 @@
 <launch>
 
-<<<<<<< HEAD
-<!--
-	<arg name="marker_size" default="50.0" />
-	<arg name="max_new_marker_error" default="0.08" />
-	<arg name="max_track_error" default="0.2" />
-    <arg name="cam_image_topic" default="/vrep/follower_0/visionSensor" />
-    <arg name="cam_info_topic" default="/vrep/follower_0/visionSensorInfo" />	
-	<arg name="output_frame" default="/frontCamera_0" />
-  
-	<node name="ar_track_alvar" pkg="ar_track_alvar" type="individualMarkersNoKinect" respawn="false" output="screen" args="$(arg marker_size) $(arg max_new_marker_error) $(arg max_track_error) $(arg cam_image_topic) $(arg cam_info_topic) $(arg output_frame)" />
-  -->
-  <!-- Inutile lancé dans minimal
-  <node pkg="robot_control" type="bubble_odom.py" name="odom" output="screen">
-      <param name="vrep_prefix" value="/vrep/follower_0"/>
-        <param name="odom_frame" value="/odom"/>
-        <param name="body_frame" value="/follower_0"/>
-  </node> -->
-
-    <!-- 
-  <node respawn="true" pkg="joy" type="joy_node" name="joy" >
-    <param name="dev" type="string" value="/dev/input/js0" /> 
-     <param name="deadzone" value="0.12" /> 
-    <param name="autorepeat_rate" value="10.0" />
-  </node>-->
-
-  <!-- Axes 
-  <node pkg="vrep_ros_teleop" type="teleop.py" name="teleop">
-    <param name="axis_linear_x" value="1" type="int"/>
-    <param name="axis_angular" value="0" type="int"/>
-    <param name="scale_linear" value="1.0" type="double"/>
-    <param name="scale_angular" value="1.0" type="double"/>
-    <remap from="/teleop/joy" to="/joy"/>
-    <remap from="/teleop/twistCommand" to="/vrep/follower_0/twistCommand"/>
-  </node>-->
-  <node pkg="tb_slam" type="turtle_slam.py" name="slam" output="screen">
-=======
     <node pkg="tb_slam" type="turtle_slam.py" name="slam" output="screen">
->>>>>>> 6273fbca7b7247b84305d6be97ba812f8ddc454e
         <param name="ignore_id" value="False"/>
         <param name="target_frame" value="/map"/>
         <param name="odom_frame" value="/odom"/>
