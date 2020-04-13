@@ -1,13 +1,13 @@
 <launch>
     <node pkg="costmap_2d" type="costmap_2d_node" name="costmap" output="screen">
-        <rosparam file="$(find turtlebot_navigation)/param/costmap_common_params.yaml" command="load" ns="costmap/obstacle_layer" />
-       <!--<rosparam file="$(find ar_slam_base)/costmap2d.yaml" command="load" ns="costmap/obstacle_layer" />-->
+        <!--<rosparam file="$(find turtlebot_navigation)/param/costmap_common_params.yaml" command="load" ns="costmap/obstacle_layer" />-->
+        <rosparam file="$(find ar_slam_base)/costmap2d_project.yaml" command="load" ns="costmap" />
 
 
-        <param name="costmap/global_frame" value="map"/><!--ar_map-->
+        <!--<param name="costmap/global_frame" value="map"/>
         <param name="costmap/robot_base_frame" value="bubbleRob"/>
-        <param name="costmap/update_frequency" value="3.0"/>
-        <param name="costmap/publish_frequency" value="0.25"/>
+        <param name="costmap/update_frequency" value="30.0"/>
+        <param name="costmap/publish_frequency" value="5"/>
         <param name="costmap/static_map" value="false"/>
         <param name="costmap/rolling_window" value="false"/>
         <param name="costmap/obstacle_layer/raytrace_range" value="2.5"/>
@@ -20,14 +20,16 @@
         <param name="costmap/origin_y" value="-40"/>
         <param name="costmap/unknown_cost_value" value="-1"/>
         <param name="costmap/track_unknown_space" value="true"/>
-	<param name="costmap/robot_radius" value="0.05"/>
+	    <param name="costmap/robot_radius" value="0.05"/>
+
+        <param name="costmap/observation_sources" value="scan"/>
+        <param name="costmap/scan/topic" value="/vrep/hokuyo"/>
+        <param name="costmap/scan/data_type" value="LaserScan"/>-->
+
+
+
+
 
     </node>
-
-    <!-- Run the costmap node -->
-
-    <!--<node name="costmap_node" pkg="costmap_2d" type="costmap_2d_node" >
-        <rosparam file="$(find ar_slam_base)/costmap2d.yaml" command="load" ns="costmap" />
-    </node>  -->
 
 </launch>
