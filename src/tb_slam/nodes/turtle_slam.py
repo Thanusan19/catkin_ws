@@ -125,8 +125,11 @@ class BubbleSLAM:
         for m in markers.markers:
             if m.id > 32:
                 continue
+
             lasttf = m.header.stamp
+
             self.listener.waitForTransform(self.body_frame,m.header.frame_id, lasttf, rospy.Duration(1.0))
+
             m_pose = PointStamped()
             m_pose.header = m.header
             m_pose.point = m.pose.pose.position

@@ -1,6 +1,6 @@
 # Global parameters
-global_frame:         map
-robot_base_frame:     bubbleRob
+global_frame:         odom
+robot_base_frame:     base_footprint
 robot_radius:         0.18 
 publish_voxel_map:    false
 subscribe_to_updates: true
@@ -42,14 +42,16 @@ obstacle_layer:
   observation_sources:  scan
   scan:
     data_type: LaserScan
-    topic: /vrep/hokuyo
+    topic: /scan
     marking: true
     clearing: true
-    min_obstacle_height: -1.0
-    max_obstacle_height: 1.0
+    min_obstacle_height: 0.25
+    max_obstacle_height: 0.35
 
 # Inflation layer
 inflation_layer:
   enabled:              true
   cost_scaling_factor:  10.0  
-  inflation_radius:     0.1 
+  inflation_radius:     0.1  
+
+
