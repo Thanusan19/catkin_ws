@@ -14,17 +14,22 @@
 #include <nav_msgs/OccupancyGrid.h>
 #include <nav_msgs/Path.h>
 #include <geometry_msgs/PoseStamped.h>
+#include <std_msgs/Float32.h>
+
 
 #define FREE 0xFF
 #define UNKNOWN 0x80
 #define OCCUPIED 0x00
 #define WIN_SIZE 800
 
+
+
 class OccupancyGridPlanner {
     protected:
         ros::NodeHandle nh_;
         ros::Subscriber og_sub_;
         ros::Subscriber target_sub_;
+        ros::Subscriber voltage_sub_; //Ajout monitoring battery
         ros::Publisher path_pub_;
         tf::TransformListener listener_;
 
@@ -39,6 +44,7 @@ class OccupancyGridPlanner {
         bool ready;
         bool debug;
         double radius;
+        float voltage_robot;//Ajout monitoring battery
 
         typedef std::multimap<float, cv::Point3i> Heap;
 
@@ -61,14 +67,14 @@ class OccupancyGridPlanner {
                     int8_t v = msg->data[j*msg->info.width + i];
                     switch (v) {
                         case 0: 
-                            og_(j,i) = FREE; 
+                            og_(j,i) = FREE; //OCCUPIED 
                             break;
                         case 100: 
-                            og_(j,i) = OCCUPIED; 
+                            og_(j,i) = OCCUPIED; //UNKNOWN
                             break;
                         case -1: 
                         default:
-                            og_(j,i) = UNKNOWN; 
+                            og_(j,i) = UNKNOWN; //FREE
                             break;
                     }
                     // Update the bounding box of free or occupied cells.
@@ -167,11 +173,28 @@ class OccupancyGridPlanner {
                 // this gets the current pose in transform
                 listener_.lookupTransform(frame_id_,base_link_, ros::Time(0), transform);
             }
+
+            cv::Point3i target;
+            double t_yaw;
+
+
+            //Ajout monitoring battery
+            if(voltage_robot<60.0){
             // Now scale the target to the grid resolution and shift it to the
             // grid center.
-            double t_yaw = tf::getYaw(pose.pose.orientation);
-            cv::Point3i target = cv::Point3i(pose.pose.position.x / info_.resolution, pose.pose.position.y / info_.resolution,(unsigned int)round(t_yaw/(M_PI/4)) % 8)//manque une 3ème dimension
+                target = cv::Point3i(0,0,0)//manque une 3ème dimension
                 + og_center_;
+            } else {
+            // Now scale the target to the grid resolution and shift it to the
+            // grid center.
+                t_yaw = tf::getYaw(pose.pose.orientation);
+                target = cv::Point3i(pose.pose.position.x / info_.resolution, pose.pose.position.y / info_.resolution,(unsigned int)round(t_yaw/(M_PI/4)) % 8)//manque une 3ème dimension
+                + og_center_;
+            }
+
+
+
+
             ROS_INFO("Planning target: %.2f %.2f -> %d %d",
                         pose.pose.position.x, pose.pose.position.y, target.x, target.y);
             cv::circle(og_rgb_marked_,point3iToPoint(target), 10, cv::Scalar(0,0,255));
@@ -357,6 +380,12 @@ class OccupancyGridPlanner {
             ROS_INFO("Request completed");
         }
 
+        //Ajout monitoring battery
+        void voltage_callback(const std_msgs::Float32ConstPtr & msg) {
+            voltage_robot = msg->data;
+        }
+
+
 
 
     public:
@@ -378,6 +407,7 @@ class OccupancyGridPlanner {
             }
             og_sub_ = nh_.subscribe("occ_grid",1,&OccupancyGridPlanner::og_callback,this);
             target_sub_ = nh_.subscribe("goal",1,&OccupancyGridPlanner::target_callback,this);
+            voltage_sub_ = nh_.subscribe("voltage",1,&OccupancyGridPlanner::voltage_callback,this); //Ajout subscribe voltage
             path_pub_ = nh_.advertise<nav_msgs::Path>("path",1,true);
         }
 };

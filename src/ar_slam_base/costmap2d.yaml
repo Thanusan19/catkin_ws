@@ -15,8 +15,8 @@ transform_tolerance:  0.5
 rolling_window:       true
 static_map:           false
 resolution:           0.05
-width:                100
-height:               100
+width:                25
+height:               25
 origin_x:             -7
 origin_y:             -7
 
