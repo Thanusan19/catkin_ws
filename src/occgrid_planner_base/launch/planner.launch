@@ -4,8 +4,9 @@
     <param name="neighbourhood" value="5"/><!--8-->
     <param name="base_frame" value="/bubbleRob"/><!--body-->
     <param name="debug" value="False"/>
-    <remap from="/planner/occ_grid" to="/costmap/costmap/costmap"/><!--/map-->
+    <remap from="/planner/occ_grid" to="/costmap/costmap/costmap"/><!--/map /costmap/costmap/costmap-->
     <remap from="/planner/goal" to="/move_base_simple/goal"/>
+    <remap from="/planner/voltage" to="/vrep/voltage"/><!--battery monitoring-->
   </node>
 
 
@@ -29,10 +30,11 @@
       <remap from="/path_follower/twistCommand" to="/mux/autoCommand"/>
   </node>
 
-  <!--<node pkg="topic_tools" type="mux" name="cmd_mux" 
-      args="/vrep/twistCommand /teleop/twistCommand /mux/autoCommand">
-  </node>
 
+  <!--<node pkg="topic_tools" type="mux" name="cmd_mux">
+      args="/vrep/twistCommand /teleop/twistCommand /mux/autoCommand">
+  </node>-->
+  <!--
   <node pkg="vrep_ros_teleop" type="teleop_mux.py" name="teleop_mux">
       <param name="joystick_button" value="0" type="int"/>
       <param name="joystick_topic" value="/teleop/twistCommand"/>
