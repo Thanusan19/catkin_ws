@@ -4,7 +4,7 @@
     <param name="neighbourhood" value="5"/><!--8-->
     <param name="base_frame" value="/bubbleRob"/><!--body-->
     <param name="debug" value="False"/>
-    <remap from="/planner/occ_grid" to="/map"/>
+    <remap from="/planner/occ_grid" to="/costmap/costmap/costmap"/><!--/map-->
     <remap from="/planner/goal" to="/move_base_simple/goal"/>
   </node>
 
@@ -29,7 +29,7 @@
       <remap from="/path_follower/twistCommand" to="/mux/autoCommand"/>
   </node>
 
-  <node pkg="topic_tools" type="mux" name="cmd_mux" 
+  <!--<node pkg="topic_tools" type="mux" name="cmd_mux" 
       args="/vrep/twistCommand /teleop/twistCommand /mux/autoCommand">
   </node>
 
@@ -40,14 +40,14 @@
       <param name="auto_topic" value="/mux/autoCommand"/>
       <remap from="/teleop_mux/joy" to="/joy"/>
   </node>
-  <!-- Axes -->
+
   <node pkg="vrep_ros_teleop" type="teleop.py" name="teleop">
     <param name="axis_linear_x" value="1" type="int"/>
     <param name="axis_angular" value="0" type="int"/>
     <param name="scale_linear" value="0.5" type="double"/>
     <param name="scale_angular" value="1.0" type="double"/>
     <remap from="/teleop/joy" to="/joy"/>
-  </node>
+  </node>-->
 
 
 </launch>

@@ -32,6 +32,7 @@ class OccupancyGridPlanner {
         cv::Mat_<uint8_t> og_, cropped_og_;
         cv::Mat_<cv::Vec3b> og_rgb_, og_rgb_marked_;
         cv::Point3i og_center_;
+        std::vector<cv::Point2i> frontierPoints_;
         nav_msgs::MapMetaData info_;
         std::string frame_id_;
         std::string base_link_;
@@ -41,6 +42,45 @@ class OccupancyGridPlanner {
         double radius;
 
         typedef std::multimap<float, cv::Point3i> Heap;
+
+        //Find and store all frontierPoints in a 1 dim vector
+        void findFrontierPoints(cv::Mat_<uint8_t> og_){
+            int width=og_.size().width;
+            int height=og_.size().height;
+            
+            frontierPoints_.clear();
+            for (size_t i = 0; i < height ; i++)
+            {
+                for (size_t j = 0; j < width; j++)
+                {
+                    if((og_(i,j)==FREE) && ((og_(i-1,j)==OCCUPIED) || (og_(i-1,j-1)==OCCUPIED) || (og_(i-1,j+1)==OCCUPIED) || (og_(i,j-1)==OCCUPIED)
+                        || (og_(i,j+1)==OCCUPIED) || (og_(i+1,j)==OCCUPIED) || (og_(i+1,j-11)==OCCUPIED) || (og_(i+1,j+1)==OCCUPIED) ))
+                        {
+                            cv::Point2i frontierPoint;
+                            frontierPoint=cv::Point2i(i,j);
+                            frontierPoints_.push_back(frontierPoint);
+                            ROS_INFO("Frontier Point: %d %d",frontierPoint.x,frontierPoint.y);
+                        }
+                }
+                
+            }
+        }
+
+        //Return the frontier point which is close to the Robot
+        cv::Point2i frontierPointCloseToRobot(const cv::Point3i & currP){
+            float minDistanceToRobot= hypot(frontierPoints_[0].x - currP.x, frontierPoints_[0].y - currP.y);
+            cv::Point2i closestFrontierPoint=frontierPoints_[0];
+
+            for (size_t i = 1; i < frontierPoints_.size(); i++)
+            {
+                float distance=hypot(frontierPoints_[i].x - currP.x, frontierPoints_[i].y - currP.y);
+                if(distance<minDistanceToRobot){
+                    minDistanceToRobot=distance;
+                    closestFrontierPoint=frontierPoints_[i];
+                }
+            }
+            return closestFrontierPoint;
+        }
 
         // Callback for Occupancy Grids
         void og_callback(const nav_msgs::OccupancyGridConstPtr & msg) {
@@ -61,14 +101,14 @@ class OccupancyGridPlanner {
                     int8_t v = msg->data[j*msg->info.width + i];
                     switch (v) {
                         case 0: 
-                            og_(j,i) = FREE; 
+                            og_(j,i) = FREE; //OCCUPIED; 
                             break;
                         case 100: 
-                            og_(j,i) = OCCUPIED; 
+                            og_(j,i) = OCCUPIED; //UNKNOWN; 
                             break;
                         case -1: 
                         default:
-                            og_(j,i) = UNKNOWN; 
+                            og_(j,i) = UNKNOWN; //FREE; 
                             break;
                     }
                     // Update the bounding box of free or occupied cells.
@@ -167,6 +207,8 @@ class OccupancyGridPlanner {
                 // this gets the current pose in transform
                 listener_.lookupTransform(frame_id_,base_link_, ros::Time(0), transform);
             }
+
+
             // Now scale the target to the grid resolution and shift it to the
             // grid center.
             double t_yaw = tf::getYaw(pose.pose.orientation);
@@ -213,6 +255,18 @@ class OccupancyGridPlanner {
                 //ROS_ERROR("Invalid start point: occupancy = %d",og_(point3iToPoint(start)));
                 return;
             }
+
+            /****************************************************************************/
+            /*PROJECT:Store frontier points in a list and find closest poit to the Robot*/
+            /****************************************************************************/
+            
+            findFrontierPoints(og_);
+            cv::Point2i minTarget= frontierPointCloseToRobot(start);
+            ROS_INFO("Closest point to the Robot (%d %d)",minTarget.x,minTarget.y);
+
+            /********************************/
+
+
             ROS_INFO("Starting planning from (%d, %d %d) to (%d, %d %d)",start.x,start.y,start.z, target.x, target.y,target.z);
             // Here the Dijskstra algorithm starts 
             // The best distance to the goal computed so far. This is
@@ -247,24 +301,7 @@ class OccupancyGridPlanner {
                 //Angle= 315
                 {cv::Point3i(1,-1,0), cv::Point3i(1,0,1), cv::Point3i(0,-1,-1), cv::Point3i(0,0,1), cv::Point3i(0,0,-1)}
             };
-            /*cv::Point3i neighbours[8][5]={
-                //Angle= 0
-                {cv::Point3i(1,0,0), cv::Point3i(1,1,2), cv::Point3i(1,-1,6), cv::Point3i(2,1,1), cv::Point3i(2,-1,-7)},
-                //Angle= 45
-                {cv::Point3i(1,1,1), cv::Point3i(0,1,3), cv::Point3i(1,0,7), cv::Point3i(2,1,0), cv::Point3i(1,2,2)},
-                //Angle= 90
-                {cv::Point3i(1,0,2), cv::Point3i(1,1,0), cv::Point3i(-1,1,4), cv::Point3i(1,2,1), cv::Point3i(-1,2,3)},
-                //Angle= 135
-                {cv::Point3i(-1,1,3), cv::Point3i(0,1,1), cv::Point3i(-1,0,5), cv::Point3i(-1,2,2), cv::Point3i(-2,1,4)},
-                //Angle= 180
-                {cv::Point3i(-1,0,4), cv::Point3i(-1,1,2), cv::Point3i(-1,-1,6), cv::Point3i(-2,1,3), cv::Point3i(-2,-1,5)},
-                //Angle= 225
-                {cv::Point3i(-1,-1,5), cv::Point3i(-1,0,3), cv::Point3i(0,-1,7), cv::Point3i(-2,-1,4), cv::Point3i(-1,-2,6)},
-                //Angle= 270
-                {cv::Point3i(0,-1,6), cv::Point3i(-1,-1,4), cv::Point3i(1,-1,0), cv::Point3i(-1,-2,5), cv::Point3i(1,-2,7)},
-                //Angle= 315
-                {cv::Point3i(1,-1,7), cv::Point3i(0,-1,5), cv::Point3i(1,0,1), cv::Point3i(1,-2,6), cv::Point3i(2,-1,0)}
-            };*/
+
 
             // Cost of displacement corresponding the neighbours. Diagonal
             // moves are 44% longer.
