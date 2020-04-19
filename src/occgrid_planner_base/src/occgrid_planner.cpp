@@ -31,6 +31,7 @@ class OccupancyGridPlanner {
         ros::Subscriber target_sub_;
         ros::Subscriber voltage_sub_; //Ajout monitoring battery
         ros::Publisher path_pub_;
+        ros::Publisher goal_pub_; //project
         tf::TransformListener listener_;
 
         cv::Rect roi_;
@@ -87,6 +88,30 @@ class OccupancyGridPlanner {
             }
             return closestFrontierPoint;
         }
+
+        //Publish one fromtier point as goal every 5s
+        //void timerCallback(const ros::TimerEvent& e)
+        //{
+            /****************************************************************************/
+            /*PROJECT:Store frontier points in a list and find closest poit to the Robot*/
+            /****************************************************************************/
+            /*cv::Point3i start;
+            double s_yaw = 0;
+
+            tf::StampedTransform transform;
+            // this gets the current pose in transform
+            listener_.lookupTransform(frame_id_,base_link_, ros::Time(0), transform);
+
+            s_yaw = tf::getYaw(transform.getRotation());
+            start = cv::Point3i(transform.getOrigin().x() / info_.resolution, transform.getOrigin().y() / info_.resolution,(unsigned int)round(s_yaw/(M_PI/4)) % 8)//manque une 3ème dimension
+                    + og_center_;
+            findFrontierPoints(og_);
+            cv::Point2i minTarget= frontierPointCloseToRobot(start);
+            ROS_INFO("Closest point to the Robot (%d %d)",minTarget.x,minTarget.y);*/
+
+            /********************************/
+
+        //}
 
         // Callback for Occupancy Grids
         void og_callback(const nav_msgs::OccupancyGridConstPtr & msg) {
@@ -281,9 +306,9 @@ class OccupancyGridPlanner {
             /*PROJECT:Store frontier points in a list and find closest poit to the Robot*/
             /****************************************************************************/
             
-            findFrontierPoints(og_);
-            cv::Point2i minTarget= frontierPointCloseToRobot(start);
-            ROS_INFO("Closest point to the Robot (%d %d)",minTarget.x,minTarget.y);
+            //findFrontierPoints(og_);
+            //cv::Point2i minTarget= frontierPointCloseToRobot(start);
+            //ROS_INFO("Closest point to the Robot (%d %d)",minTarget.x,minTarget.y);
 
             /********************************/
 
@@ -444,7 +469,44 @@ class OccupancyGridPlanner {
             target_sub_ = nh_.subscribe("goal",1,&OccupancyGridPlanner::target_callback,this);
             voltage_sub_ = nh_.subscribe("voltage",1,&OccupancyGridPlanner::voltage_callback,this); //Ajout subscribe voltage
             path_pub_ = nh_.advertise<nav_msgs::Path>("path",1,true);
+            //Project
+            ros::Timer timer = nh_.createTimer(ros::Duration(1/5), &OccupancyGridPlanner::timerCallback,this);        
+            goal_pub_ = nh_.advertise<geometry_msgs::PoseStamped>("goal",1,true);
+
         }
+        void timerCallback(const ros::TimerEvent& e)
+        {
+            /****************************************************************************/
+            /*PROJECT:Store frontier points in a list and find closest poit to the Robot*/
+            /****************************************************************************/
+            cv::Point3i start;
+            double s_yaw = 0;
+
+            tf::StampedTransform transform;
+            // this gets the current pose in transform
+            listener_.lookupTransform(frame_id_,base_link_, ros::Time(0), transform);
+
+            s_yaw = tf::getYaw(transform.getRotation()) + M_PI;
+            start = cv::Point3i(transform.getOrigin().x() / info_.resolution, transform.getOrigin().y() / info_.resolution,(unsigned int)round(s_yaw/(M_PI/4)) % 8)//manque une 3ème dimension
+                    + og_center_;
+
+            findFrontierPoints(og_);
+            cv::Point2i minTarget= frontierPointCloseToRobot(start);
+            ROS_INFO("Closest point to the Robot (%d %d)",minTarget.x,minTarget.y);
+
+            //Publish Goal
+            geometry_msgs::PoseStamped pose;
+            //pose.header=ros::Time::now();
+            pose.pose.position.x=minTarget.x * info_.resolution;
+            pose.pose.position.y=minTarget.y * info_.resolution;
+            tf::Quaternion q = tf::createQuaternionFromRPY(0,0,s_yaw);
+            tf::quaternionTFToMsg(q, pose.pose.orientation);
+
+            goal_pub_.publish(pose);
+            ROS_INFO("Request completed : frontier point published as goal");
+
+        }
+
 };
 
 int main(int argc, char * argv[]) {
