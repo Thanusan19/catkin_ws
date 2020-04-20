@@ -469,10 +469,10 @@ class OccupancyGridPlanner {
 
             tf::StampedTransform transform;
             // this gets the current pose in transform
-            listener_.lookupTransform(frame_id_,base_link_, ros::Time(0), transform);
+            //listener_.lookupTransform(frame_id_,base_link_, ros::Time(0), transform);
 
             s_yaw = tf::getYaw(transform.getRotation()) + M_PI;
-            start = cv::Point3i(transform.getOrigin().x() / info_.resolution, transform.getOrigin().y() / info_.resolution,(unsigned int)round(s_yaw/(M_PI/4)) % 8)//manque une 3ème dimension
+            start = cv::Point3i(info_.origin.position.x / info_.resolution, info_.origin.position.y / info_.resolution,(unsigned int)round(s_yaw/(M_PI/4)) % 8)//manque une 3ème dimension
                     + og_center_;
 
 
@@ -507,12 +507,12 @@ class OccupancyGridPlanner {
                 start = og_center_;
             } 
             ROS_INFO("Planning origin %.2f %.2f %.2f -> %d %d %d",
-                    transform.getOrigin().x(), transform.getOrigin().y(),s_yaw, start.x, start.y,start.z);
+                    info_.origin.position.x, info_.origin.position.y,s_yaw, start.x, start.y,start.z);
            
 
             if (!isInGrid(start)) {
                 ROS_ERROR("Invalid starting point (%.2f %.2f %.2f) -> (%d %d %d)",
-                        transform.getOrigin().x(), transform.getOrigin().y(),s_yaw, start.x, start.y,start.z);
+                        info_.origin.position.x, info_.origin.position.y,s_yaw, start.x, start.y,start.z);
                 return;
             }
             // If the starting point is not FREE there is a bug somewhere, but
@@ -682,7 +682,7 @@ class OccupancyGridPlanner {
             voltage_sub_ = nh_.subscribe("voltage",1,&OccupancyGridPlanner::voltage_callback,this); //Ajout subscribe voltage
             path_pub_ = nh_.advertise<nav_msgs::Path>("path",1,true);
             //Project
-            timer = nh_.createTimer(ros::Duration(1/5), &OccupancyGridPlanner::timerCallback,this);        
+            timer = nh_.createTimer(ros::Duration(1/20), &OccupancyGridPlanner::timer_callback,this);        
             //goal_pub_ = nh_.advertise<geometry_msgs::PoseStamped>("goal",1,true);
 
         }
