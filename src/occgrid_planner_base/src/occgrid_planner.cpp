@@ -446,11 +446,11 @@ class OccupancyGridPlanner {
         // mutex here, because it can only be called in spinOnce.
         void timer_callback(const ros::TimerEvent& e) {
 
-            /*if (!ready) {
+            if (!ready) {
                 ROS_WARN("Ignoring target while the occupancy grid has not been received");
                 return;
             }
-            ROS_INFO("Received planning request");
+            /*ROS_INFO("Received planning request");
             og_rgb_marked_ = og_rgb_.clone();
             // Convert the destination point in the occupancy grid frame. 
             // The debug case is useful is the map is published without
@@ -469,10 +469,10 @@ class OccupancyGridPlanner {
 
             tf::StampedTransform transform;
             // this gets the current pose in transform
-            //listener_.lookupTransform(frame_id_,base_link_, ros::Time(0), transform);
+            listener_.lookupTransform(frame_id_,base_link_, ros::Time(0), transform);
 
             s_yaw = tf::getYaw(transform.getRotation()) + M_PI;
-            start = cv::Point3i(info_.origin.position.x / info_.resolution, info_.origin.position.y / info_.resolution,(unsigned int)round(s_yaw/(M_PI/4)) % 8)//manque une 3ème dimension
+            start = cv::Point3i(transform.getOrigin().x() / info_.resolution, transform.getOrigin().y() / info_.resolution,(unsigned int)round(s_yaw/(M_PI/4)) % 8)//manque une 3ème dimension
                     + og_center_;
 
 
