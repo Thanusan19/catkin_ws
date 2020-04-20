@@ -33,6 +33,7 @@ class OccupancyGridPlanner {
         ros::Publisher path_pub_;
         ros::Publisher goal_pub_; //project
         tf::TransformListener listener_;
+        ros::Timer timer;
 
         cv::Rect roi_;
         cv::Mat_<uint8_t> og_, cropped_og_;
@@ -470,8 +471,9 @@ class OccupancyGridPlanner {
             voltage_sub_ = nh_.subscribe("voltage",1,&OccupancyGridPlanner::voltage_callback,this); //Ajout subscribe voltage
             path_pub_ = nh_.advertise<nav_msgs::Path>("path",1,true);
             //Project
-            ros::Timer timer = nh_.createTimer(ros::Duration(1/5), &OccupancyGridPlanner::timerCallback,this);        
-            goal_pub_ = nh_.advertise<geometry_msgs::PoseStamped>("goal",1,true);
+
+            timer = nh_.createTimer(ros::Duration(1/5), &OccupancyGridPlanner::timer_callback,this);        
+            //goal_pub_ = nh_.advertise<geometry_msgs::PoseStamped>("goal",1,true);
 
         }
         void timerCallback(const ros::TimerEvent& e)
@@ -479,7 +481,7 @@ class OccupancyGridPlanner {
             /****************************************************************************/
             /*PROJECT:Store frontier points in a list and find closest poit to the Robot*/
             /****************************************************************************/
-            cv::Point3i start;
+            /*cv::Point3i start;
             double s_yaw = 0;
 
             tf::StampedTransform transform;
@@ -502,8 +504,9 @@ class OccupancyGridPlanner {
             tf::Quaternion q = tf::createQuaternionFromRPY(0,0,s_yaw);
             tf::quaternionTFToMsg(q, pose.pose.orientation);
 
-            goal_pub_.publish(pose);
-            ROS_INFO("Request completed : frontier point published as goal");
+            goal_pub_.publish(pose);*/
+            ROS_INFO("Timer callback test");
+
 
         }
 
