@@ -741,17 +741,17 @@ class OccupancyGridPlanner {
             ROS_INFO("Actuel position = %d %d",transform.getOrigin().x() / info_.resolution,transform.getOrigin().y() / info_.resolution);
 
             //Create singal map
-            signalMap_=cv::Mat_<uint8_t>(height, width,0xFF);
+            //signalMap_=cv::Mat_<uint8_t>(height, width,0xFF);
 
-            for (unsigned int j=0;j<height;j++) {
-                for (unsigned int i=0;i<width;i++) {
+            //for (unsigned int j=0;j<height;j++) {
+                //for (unsigned int i=0;i<width;i++) {
             //Set signal value in a 10 unit radius
-                    uint8_t u_signalWifi=signal_wifi;
-                    signalMap_(j,i)=  u_signalWifi;
+                    //uint8_t u_signalWifi=signal_wifi;
+                    //signalMap_(j,i)=  u_signalWifi;
                     //ROS_INFO("SIGNALMAP value = %2f",u_signalWifi);
 
-                }
-            }
+                //}
+            //}
 
             //Display
 
@@ -776,7 +776,14 @@ class OccupancyGridPlanner {
                 cv::Point3i robotPosition = signal_wifi_list[i].getRobotPosition();
                 float signal=signal_wifi_list[i].getSignalWifi();
                 signal=static_cast<int>(signal);
-                cv::circle(signalMap__rgb_,point3iToPoint(robotPosition), 10, cv::Scalar(0,signal,0),CV_FILLED);
+
+                if(signal<30){
+                    cv::circle(signalMap__rgb_,point3iToPoint(robotPosition), 10, cv::Scalar(signal,0,0),CV_FILLED);
+                }else if(signal>70){
+                    cv::circle(signalMap__rgb_,point3iToPoint(robotPosition), 10, cv::Scalar(0,signal,0),CV_FILLED);
+                }else{
+                    cv::circle(signalMap__rgb_,point3iToPoint(robotPosition), 10, cv::Scalar(0,0,signal),CV_FILLED);
+                }
             }
             
             cv::imshow( "SignalMap", signalMap__rgb_ );
