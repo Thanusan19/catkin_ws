@@ -680,11 +680,30 @@ class OccupancyGridPlanner {
 
         void signal_callback(const std_msgs::Float32ConstPtr & msg) {
             signal_wifi = msg->data;
-            signal_wifi = signal_wifi*100;
+            signal_wifi = static_cast<int>(signal_wifi*100);
             ROS_INFO("SIGNAL = %f",signal_wifi);
 
             int width=og_.size().width;
             int height=og_.size().height;
+
+            if (!ready) {
+                ROS_WARN("Ignoring target while the occupancy grid has not been received");
+                return;
+            }
+            ROS_INFO("Received planning request");
+
+            cv::Point3i start;
+            double s_yaw = 0;
+
+            tf::StampedTransform transform;
+            // this gets the current pose in transform
+            listener_.lookupTransform(frame_id_,base_link_, ros::Time(0), transform);
+
+            s_yaw = tf::getYaw(transform.getRotation()) + M_PI;
+            start = cv::Point3i(transform.getOrigin().x() / info_.resolution, transform.getOrigin().y() / info_.resolution,(unsigned int)round(s_yaw/(M_PI/4)) % 8)//manque une 3ème dimension
+                    + og_center_;
+
+            ROS_INFO("Actuel position = %d %d",transform.getOrigin().x() / info_.resolution,transform.getOrigin().y() / info_.resolution);
 
             //Create singal map
             signalMap_=cv::Mat_<uint8_t>(height, width,0xFF);
@@ -694,14 +713,19 @@ class OccupancyGridPlanner {
             //Set signal value in a 10 unit radius
                     uint8_t u_signalWifi=signal_wifi;
                     signalMap_(j,i)=  u_signalWifi;
-                    ROS_INFO("SIGNALMAP value = %2f",u_signalWifi);
+                    //ROS_INFO("SIGNALMAP value = %2f",u_signalWifi);
 
                 }
             }
 
             //Display
+            signalMap_=cv::Mat_<uint8_t>(height, width,0xFF);
             cv::cvtColor(signalMap_, signalMap__rgb_, CV_GRAY2RGB);
+            //signalMap__rgb_ = og_rgb_.clone();
+            //cv::cvtColor(signalMap_, signalMap__rgb_, CV_BGR2Luv);
+            cv::circle(signalMap__rgb_,point3iToPoint(start), 10, cv::Scalar(0,signal_wifi,0),CV_FILLED);
             cv::imshow( "SignalMap", signalMap__rgb_ );
+            //cv::imshow( "SignalMap", signalMap__rgb_ );
 
         }
 
