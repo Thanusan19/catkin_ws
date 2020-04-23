@@ -23,6 +23,35 @@
 #define WIN_SIZE 800
 
 
+class SignalWifiManagement{
+    protected:
+        float signalWifi;
+        cv::Point3i robotPosition;
+    
+    public:
+        SignalWifiManagement(){
+            signalWifi=0;
+            robotPosition=cv::Point3i(0,0,0);
+        }
+
+        void setSignalWifi(float value){
+            signalWifi=value;
+        }
+
+        void setRobotPosition(cv::Point3i Position){
+            robotPosition=Position;
+        }
+
+        float getSignalWifi(){
+            return signalWifi;
+        }
+
+        cv::Point3i getRobotPosition(){
+            return robotPosition;
+        }
+
+};
+
 
 class OccupancyGridPlanner {
     protected:
@@ -53,6 +82,11 @@ class OccupancyGridPlanner {
         float signal_wifi;
 
         typedef std::multimap<float, cv::Point3i> Heap;
+        //typedef std::multimap<float, cv::Point3i> SIGNAL_WIFI;
+
+        std::vector<SignalWifiManagement> signal_wifi_list;
+
+
 
         //Find and store all frontierPoints in a 1 dim vector
         void findFrontierPoints(cv::Mat_<uint8_t> og_){
@@ -680,7 +714,8 @@ class OccupancyGridPlanner {
 
         void signal_callback(const std_msgs::Float32ConstPtr & msg) {
             signal_wifi = msg->data;
-            signal_wifi = static_cast<int>(signal_wifi*100);
+            //signal_wifi = static_cast<int>(signal_wifi*100);
+            signal_wifi=signal_wifi*100;
             ROS_INFO("SIGNAL = %f",signal_wifi);
 
             int width=og_.size().width;
@@ -719,11 +754,31 @@ class OccupancyGridPlanner {
             }
 
             //Display
+
+            //SIGNAL_WIFI signal_wifi_point;
+            //signal_wifi_point.insert(Heap::value_type(signal_wifi,start));
+            //signal_wifi_list.push_back(signal_wifi_point);
+
+            SignalWifiManagement signalWifiManagement;
+            signalWifiManagement.setRobotPosition(start);
+
+            signalWifiManagement.setSignalWifi(signal_wifi);
+
+            signal_wifi_list.push_back(signalWifiManagement);
+
+            
             signalMap_=cv::Mat_<uint8_t>(height, width,0xFF);
             cv::cvtColor(signalMap_, signalMap__rgb_, CV_GRAY2RGB);
             //signalMap__rgb_ = og_rgb_.clone();
             //cv::cvtColor(signalMap_, signalMap__rgb_, CV_BGR2Luv);
-            cv::circle(signalMap__rgb_,point3iToPoint(start), 10, cv::Scalar(0,signal_wifi,0),CV_FILLED);
+            for (size_t i = 0; i < signal_wifi_list.size(); i++)
+            {
+                cv::Point3i robotPosition = signal_wifi_list[i].getRobotPosition();
+                float signal=signal_wifi_list[i].getSignalWifi();
+                signal=static_cast<int>(signal);
+                cv::circle(signalMap__rgb_,point3iToPoint(robotPosition), 10, cv::Scalar(0,signal,0),CV_FILLED);
+            }
+            
             cv::imshow( "SignalMap", signalMap__rgb_ );
             //cv::imshow( "SignalMap", signalMap__rgb_ );
 
