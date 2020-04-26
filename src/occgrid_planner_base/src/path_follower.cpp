@@ -94,7 +94,7 @@ class PathFollower {
 
             //STEP5
             target_sub_ = nh_.subscribe("goal",1,&PathFollower::target_callback,this);
-            target_pub_ = nh_.advertise<geometry_msgs::PoseStamped>("goal",1);
+            //target_pub_ = nh_.advertise<geometry_msgs::PoseStamped>("goal",1);
 
 
         };
@@ -126,7 +126,7 @@ class PathFollower {
                     pose2d_pub_.publish(error);
                     geometry_msgs::Twist twist;
 
-                    if (final && (error.x < 0.1)) {
+                    if (final && (error.x < 0.2)) {
                         // Finished
                         twist.linear.x = 0.0;
                         twist.angular.z = 0.0;
@@ -143,9 +143,9 @@ class PathFollower {
                     twist_pub_.publish(twist);
 
                     //STEP5
-                    if ((last_goal_time-ros::Time::now()).toSec()>5){
-                        target_pub_.publish(pose);
-                    }
+                    //if ((last_goal_time-ros::Time::now()).toSec()>5){
+                    //    target_pub_.publish(pose);
+                    //}
 
 
                 } else {

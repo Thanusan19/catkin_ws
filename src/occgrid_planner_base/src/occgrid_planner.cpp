@@ -93,63 +93,51 @@ class OccupancyGridPlanner {
             int width=og_.size().width;
             int height=og_.size().height;
             
-            frontierPoints_.clear();
+            //frontierPoints_.clear();
+            std::vector<cv::Point2i> frontierPoints_2;
+            frontierPoints_=frontierPoints_2;
             for (size_t i = 0; i < height ; i++)
             {
                 for (size_t j = 0; j < width; j++)
                 {
-                    if((og_(i,j)==FREE) && ((og_(i-1,j)==OCCUPIED) || (og_(i-1,j-1)==OCCUPIED) || (og_(i-1,j+1)==OCCUPIED) || (og_(i,j-1)==OCCUPIED)
-                        || (og_(i,j+1)==OCCUPIED) || (og_(i+1,j)==OCCUPIED) || (og_(i+1,j-11)==OCCUPIED) || (og_(i+1,j+1)==OCCUPIED) ))
+                    //if((og_(i,j)==FREE) && ((og_(i-1,j)==OCCUPIED) || (og_(i-1,j-1)==OCCUPIED) || (og_(i-1,j+1)==OCCUPIED) || (og_(i,j-1)==OCCUPIED)
+                      //  || (og_(i,j+1)==OCCUPIED) || (og_(i+1,j)==OCCUPIED) || (og_(i+1,j-11)==OCCUPIED) || (og_(i+1,j+1)==OCCUPIED) ))
+                    if((og_(i,j)==FREE) && ((og_(i-1,j)==UNKNOWN) || (og_(i-1,j-1)==UNKNOWN) || (og_(i-1,j+1)==UNKNOWN) || (og_(i,j-1)==UNKNOWN)
+                        || (og_(i,j+1)==UNKNOWN) || (og_(i+1,j)==UNKNOWN) || (og_(i+1,j-11)==UNKNOWN) || (og_(i+1,j+1)==UNKNOWN) ))
                         {
                             cv::Point2i frontierPoint;
-                            frontierPoint=cv::Point2i(i,j);
+                            frontierPoint=cv::Point2i(j,i);
                             frontierPoints_.push_back(frontierPoint);
-                            ROS_INFO("Frontier Point: %d %d",frontierPoint.x,frontierPoint.y);
+                            //if(frontierPoint.x>200){
+                               // ROS_INFO("Frontier Point: %d %d",frontierPoint.x,frontierPoint.y);
+                            //}
+                            
                         }
                 }
                 
             }
+            ROS_INFO("frontier point [0] = (%d, %d) ",frontierPoints_[0].x, frontierPoints_[0].y );
         }
 
         //Return the frontier point which is close to the Robot
         cv::Point2i frontierPointCloseToRobot(const cv::Point3i & currP){
-            float minDistanceToRobot= hypot(frontierPoints_[0].x - currP.x, frontierPoints_[0].y - currP.y);
+            //float minDistanceToRobot= hypot(frontierPoints_[0].x - currP.x, frontierPoints_[0].y - currP.y);
+            float minDistanceToRobot=10000;
             cv::Point2i closestFrontierPoint=frontierPoints_[0];
 
-            for (size_t i = 1; i < frontierPoints_.size(); i++)
+            for (size_t i = 0; i < frontierPoints_.size(); i++)
             {
                 float distance=hypot(frontierPoints_[i].x - currP.x, frontierPoints_[i].y - currP.y);
-                if(distance<minDistanceToRobot){
+                if((distance<minDistanceToRobot) && (distance>5)){
                     minDistanceToRobot=distance;
                     closestFrontierPoint=frontierPoints_[i];
                 }
             }
+            ROS_INFO("closestFrontierPoint = (%d, %d) ",closestFrontierPoint.x, closestFrontierPoint.y );
             return closestFrontierPoint;
+            //return frontierPoints_[0];
         }
 
-        //Publish one fromtier point as goal every 5s
-        //void timerCallback(const ros::TimerEvent& e)
-        //{
-            /****************************************************************************/
-            /*PROJECT:Store frontier points in a list and find closest poit to the Robot*/
-            /****************************************************************************/
-            /*cv::Point3i start;
-            double s_yaw = 0;
-
-            tf::StampedTransform transform;
-            // this gets the current pose in transform
-            listener_.lookupTransform(frame_id_,base_link_, ros::Time(0), transform);
-
-            s_yaw = tf::getYaw(transform.getRotation());
-            start = cv::Point3i(transform.getOrigin().x() / info_.resolution, transform.getOrigin().y() / info_.resolution,(unsigned int)round(s_yaw/(M_PI/4)) % 8)//manque une 3ème dimension
-                    + og_center_;
-            findFrontierPoints(og_);
-            cv::Point2i minTarget= frontierPointCloseToRobot(start);
-            ROS_INFO("Closest point to the Robot (%d %d)",minTarget.x,minTarget.y);*/
-
-            /********************************/
-
-        //}
 
         // Callback for Occupancy Grids
         void og_callback(const nav_msgs::OccupancyGridConstPtr & msg) {
@@ -219,7 +207,7 @@ class OccupancyGridPlanner {
             // grid.
             cropped_og_ = cv::Mat_<uint8_t>(og_,roi_);
             //cropped_signal_ = cv::Mat_<uint8_t>(og_,roi_);
-            if ((w > WIN_SIZE) || (h > WIN_SIZE)) {
+           /* if ((w > WIN_SIZE) || (h > WIN_SIZE)) {
                 // The occupancy grid is too large to display. We need to scale
                 // it first.
                 double ratio = w / ((double)h);
@@ -240,7 +228,8 @@ class OccupancyGridPlanner {
                 // cv::imshow( "OccGrid", cropped_og_ );
                 cv::imshow( "OccGrid", og_rgb_ );
                 //cv::imshow( "SignalMap", signalMap__rgb_ );
-            }
+            }*/
+            cv::imshow( "OccGrid", og_rgb_ );
 
 
         }
@@ -501,85 +490,73 @@ class OccupancyGridPlanner {
                 ROS_WARN("Ignoring target while the occupancy grid has not been received");
                 return;
             }
-            ROS_INFO("Received planning request");
-            og_rgb_marked_ = og_rgb_.clone();
-            // Convert the destination point in the occupancy grid frame. 
-            // The debug case is useful is the map is published without
-            // gmapping running (for instance with map_server).
-            /*if (debug) {
-                pose = *msg;
-            } else {
-                // This converts target in the grid frame.
-                listener_.waitForTransform(frame_id_,msg->header.frame_id,msg->header.stamp,ros::Duration(1.0));
-                listener_.transformPose(frame_id_,*msg, pose);
-                // this gets the current pose in transform
-                listener_.lookupTransform(frame_id_,base_link_, ros::Time(0), transform);
-            }*/
+            ROS_INFO("Received planning request in timer_callback");
+
+            // CALCULATE SATRT AND TARGET //
+            //--------------------------------------------------------------------------------------------------------------------//
             cv::Point3i start;
             double s_yaw = 0;
+            cv::Point3i target;
+            double t_yaw = 0;
 
             tf::StampedTransform transform;
             // this gets the current pose in transform
             listener_.lookupTransform(frame_id_,base_link_, ros::Time(0), transform);
 
-            s_yaw = tf::getYaw(transform.getRotation()) + M_PI;
-            start = cv::Point3i(transform.getOrigin().x() / info_.resolution, transform.getOrigin().y() / info_.resolution,(unsigned int)round(s_yaw/(M_PI/4)) % 8)//manque une 3ème dimension
-                    + og_center_;
-
-
-
-
-            cv::Point3i target;
-            double t_yaw;
-
-
-            //Ajout monitoring battery
-            if(voltage_robot<60.0){
-            // Now scale the target to the grid resolution and shift it to the
-            // grid center.
-                target = cv::Point3i(0,0,0)//manque une 3ème dimension
-                + og_center_;
-            } else {
-            // Now scale the target to the grid resolution and shift it to the
-            // grid center.
-
-                findFrontierPoints(og_);
-                cv::Point2i minTarget= frontierPointCloseToRobot(start);
-                ROS_INFO("Closest point to the Robot (%d %d)",minTarget.x,minTarget.y);
-                t_yaw = 0;
-                target = cv::Point3i(minTarget.x, minTarget.y,0)/10
-                + og_center_;
-            }
-
-            ROS_INFO("Planning target: %d %d", target.x, target.y);
-
-            // Now get the current point in grid coordinates.
             if (debug) {
                 start = og_center_;
-            } 
-            ROS_INFO("Planning origin %.2f %.2fog_ %.2f -> %d %d %d",
-                    info_.origin.position.x, info_.origin.position.y,s_yaw, start.x, start.y,start.z);
-           
-            cv::circle(og_rgb_marked_,point3iToPoint(start), 10, cv::Scalar(0,255,0));
-            cv::imshow( "OccGrid", og_rgb_marked_ );
-                                    
-            cv::circle(og_rgb_marked_,point3iToPoint(target), 10, cv::Scalar(0,0,255));
-            cv::imshow( "OccGrid", og_rgb_marked_ );
+            }else{
+                s_yaw = tf::getYaw(transform.getRotation()) + M_PI;
+                start = cv::Point3i(transform.getOrigin().x() / info_.resolution, transform.getOrigin().y() / info_.resolution,(unsigned int)round(s_yaw/(M_PI/4)) % 8)
+                    + og_center_;
+            }
+
 
             if (!isInGrid(start)) {
                 ROS_ERROR("Invalid starting point (%.2f %.2f %.2f) -> (%d %d %d)",
                         info_.origin.position.x, info_.origin.position.y,s_yaw, start.x, start.y,start.z);
                 return;
             }
-            // If the starting point is not FREE there is a bug somewhere, but
-            // better to check
-            if (og_(point3iToPoint(start)) != FREE) {
-                //ROS_ERROR("Invalid start point: occupancy = %d",og_(point3iToPoint(start)));
-                return;
+ 
+
+            //Add battery minitoring
+            if(voltage_robot<60.0){
+            // Now scale the target to the grid resolution and shift it to the grid center.
+                target = cv::Point3i(0,0,0) + og_center_;
+            } else {
+            // Now scale the target to the grid resolution and shift it to the grid center.
+                findFrontierPoints(og_);
+                cv::Point2i minTarget= frontierPointCloseToRobot(start);
+                ROS_INFO("minTarget: (%d, %d)",minTarget.x,minTarget.y);
+                t_yaw = 0;
+                target = cv::Point3i(minTarget.x, minTarget.y,0); //+ og_center_;
+                ROS_INFO("og_center : (%d , %d)",og_center_.x,og_center_.y);
             }
 
-            ROS_INFO("Resolution % 2f ",info_.resolution);
-            ROS_INFO("Starting planning from (%d, %d %d) to (%d, %d %d)",start.x,start.y,start.z, target.x, target.y,target.z);
+            ROS_INFO("start: (%d , %d , %d) --> target: (%d , %d, %d ) , voltage = %2f", start.x, start.y, start.z, 
+            target.x, target.y, target.z, voltage_robot);
+            //--------------------------------------------------------------------------------------------------------------------------------//
+
+
+            //DISPLAY START AND TARGET ON THE OCCGRID MAP //
+            //--------------------------------------------------------------------------------------------------------------------------------//
+            og_rgb_marked_ = og_rgb_.clone();
+
+            cv::circle(og_rgb_marked_,point3iToPoint(start), 10, cv::Scalar(0,255,0));
+            cv::imshow( "OccGrid", og_rgb_marked_ );
+                                    
+            cv::circle(og_rgb_marked_,point3iToPoint(target), 10, cv::Scalar(0,0,255),CV_FILLED);
+            cv::imshow( "OccGrid", og_rgb_marked_ );
+
+            for (size_t i = 0; i < frontierPoints_.size(); i++)
+            {
+                cv::circle(og_rgb_marked_,frontierPoints_[i], 1, cv::Scalar(0,255,0));
+                cv::imshow( "OccGrid", og_rgb_marked_ );  
+            }
+            
+            
+            //STARTING PLANNING //
+            //---------------------------------------------------------------------------------------------------------------------------------//
             // Here the Dijskstra algorithm starts 
             // The best distance to the goal computed so far. This is
             // initialised with Not-A-Number. 
@@ -618,7 +595,6 @@ class OccupancyGridPlanner {
             // Cost of displacement corresponding the neighbours. Diagonal
             // moves are 44% longer.
 
-            // float cost[8] = {1, 1, 1, 1, sqrt(2), sqrt(2), sqrt(2), sqrt(2)};
             float cost[2][5] = {{1, 1, 1, 2, 2},{sqrt(2), 1, 1, 2, 2}};
             // The core of Dijkstra's Algorithm, a sorted heap, where the first
             // element is always the closer to the start.
@@ -651,7 +627,7 @@ class OccupancyGridPlanner {
                         continue;
                     }
                     float cv = cell_value(dest.x,dest.y,dest.z);
-                    float new_cost = this_cost + ((i%2)==0)? (cost[0][i]) : (cost[1][i]); //condition ? result1 : result2               float new_cost = this_cost + cost[i]
+                    float new_cost = this_cost + ((i%2)==0)? (cost[0][i]) : (cost[1][i]);
                     if (isnan(cv) || (new_cost < cv)) {
                         // found shortest path (or new path), updating the
                         // predecessor and the value of the cell
@@ -668,6 +644,9 @@ class OccupancyGridPlanner {
                 return;
             }
             ROS_INFO("Planning completed");
+
+            // PUBLISH PATH //
+            //--------------------------------------------------------------------------------------------------------------------------//
             // Now extract the path by starting from goal and going through the
             // predecessors until the starting point
             std::list<cv::Point3i> lpath;
@@ -689,6 +668,7 @@ class OccupancyGridPlanner {
                 // trajectory at this stage
                 path.poses[ipose].header = path.header;
                 cv::Point3i P = *it - og_center_;// Put the point "P" on the top-left of the box
+                ROS_INFO("PUBLISH point = (%d , %d)",P.x,P.y);
                 path.poses[ipose].pose.position.x = (P.x) * info_.resolution;
                 path.poses[ipose].pose.position.y = (P.y) * info_.resolution;
                 
@@ -811,13 +791,13 @@ class OccupancyGridPlanner {
                     neighbourhood_ = 8;
             }
             og_sub_ = nh_.subscribe("occ_grid",1,&OccupancyGridPlanner::og_callback,this);
-            target_sub_ = nh_.subscribe("goal",1,&OccupancyGridPlanner::target_callback,this);
+            //target_sub_ = nh_.subscribe("goal",1,&OccupancyGridPlanner::target_callback,this);
             //Project step
             voltage_sub_ = nh_.subscribe("voltage",1,&OccupancyGridPlanner::voltage_callback,this); //subscribe vrep/voltage
-            signal_sub_ = nh_.subscribe("/vrep/signal",1,&OccupancyGridPlanner::signal_callback,this); //subscribe vrep/signal
+            //signal_sub_ = nh_.subscribe("/vrep/signal",1,&OccupancyGridPlanner::signal_callback,this); //subscribe vrep/signal
             path_pub_ = nh_.advertise<nav_msgs::Path>("path",1,true);
             ros::Duration(0.5).sleep();
-            timer = nh_.createTimer(ros::Duration(5), &OccupancyGridPlanner::timer_callback,this);        
+            timer = nh_.createTimer(ros::Duration(10), &OccupancyGridPlanner::timer_callback,this);        
 
         }
 
