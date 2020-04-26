@@ -1,0 +1,53 @@
+<launch>
+    <param name="use_sim_time" value="true"/>
+    <node pkg="vrep4_helpers" type="clock_repeat" name="clock_repeat" output="screen">
+    </node>
+
+
+    <!-- joy node -->
+    <node respawn="false" pkg="joy" type="joy_node" name="joy" >
+        <param name="dev" type="string" value="/dev/input/js0" /> 
+        <!-- <param name="deadzone" value="0.12" /> -->
+        <param name="autorepeat_rate" value="10.0" />
+    </node>
+
+    <!-- Axes -->
+
+    <node pkg="vrep_ros_teleop" type="teleop.py" name="teleop">
+        <param name="axis_linear" value="1" type="int"/>
+        <param name="axis_angular" value="0" type="int"/>
+        <param name="scale_linear" value="1.5" type="double"/>
+        <param name="scale_angular" value="-1.5" type="double"/>
+        <remap from="/teleop/joy" to="/joy"/>
+    </node>
+
+    <node pkg="topic_tools" type="mux" name="cmd_mux" 
+        args="/vrep/twistCommand /teleop/twistCommand /mux/autoCommand">
+    </node>
+
+    <node pkg="vrep_ros_teleop" type="teleop_mux.py" name="teleop_mux">
+        <param name="joystick_button" value="0" type="int"/>
+        <param name="joystick_topic" value="/teleop/twistCommand"/>
+        <param name="auto_button" value="1" type="int"/>
+        <param name="auto_topic" value="/mux/autoCommand"/>
+        <remap from="/teleop_mux/joy" to="/joy"/>
+    </node>
+
+    <node pkg="gtlwifi" type="bubble_odom.py" name="odom" output="screen">
+        <param name="base_line" value="0.2"/>
+        <param name="wheel_radius" value="0.04"/>
+        <param name="body_frame" value="/bubbleRob"/>
+    </node>
+
+
+    <node name="task_server" pkg="floor_nav" type="task_server" output="screen" >
+        <!-- While developing -->
+        <param name="lib_path" value="$(find floor_nav)/../../devel/share/floor_nav/tasks"/>
+        <param name="base_frame" value="bubbleRob"/>
+        <param name="reference_frame" value="odom"/>
+        <!-- <param name="reference_frame" value="map"/>-->
+        <remap from="/scan" to="/vrep/hokuyo"/>
+        <remap from="/vrep/depthSensor" to="/depth_registered/points"/>
+    </node>
+
+</launch>

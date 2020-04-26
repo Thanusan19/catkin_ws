@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 2.8.3)
 project(vrep4_helpers)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
-# add_compile_options(-std=c++11)
+add_compile_options(-std=c++11 -O3 -Wall -g -ggdb)
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
@@ -15,6 +15,7 @@ find_package(catkin REQUIRED COMPONENTS
   rospy
   sensor_msgs
   std_msgs
+  rosgraph_msgs
 )
 
 ## System dependencies are found with CMake's conventions
@@ -138,6 +139,7 @@ include_directories(
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
 add_executable(image_flip src/image_flip.cpp)
+add_executable(clock_repeat src/clock_repeat.cpp)
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
@@ -150,9 +152,8 @@ add_executable(image_flip src/image_flip.cpp)
 # add_dependencies(${PROJECT_NAME}_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Specify libraries to link a library or executable target against
-target_link_libraries(image_flip
-  ${catkin_LIBRARIES}
-)
+target_link_libraries(image_flip ${catkin_LIBRARIES})
+target_link_libraries(clock_repeat ${catkin_LIBRARIES})
 
 #############
 ## Install ##

@@ -682,6 +682,7 @@ class OccupancyGridPlanner {
             voltage_sub_ = nh_.subscribe("voltage",1,&OccupancyGridPlanner::voltage_callback,this); //Ajout subscribe voltage
             path_pub_ = nh_.advertise<nav_msgs::Path>("path",1,true);
             //Project
+            ros::Duration(0.5).sleep();
             timer = nh_.createTimer(ros::Duration(1/20), &OccupancyGridPlanner::timer_callback,this);        
             //goal_pub_ = nh_.advertise<geometry_msgs::PoseStamped>("goal",1,true);
 

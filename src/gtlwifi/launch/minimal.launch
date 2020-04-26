@@ -1,4 +1,8 @@
 <launch>
+    <param name="use_sim_time" value="false"/>
+  <node pkg="vrep4_helpers" type="clock_repeat" name="clock_repeat" output="screen">
+  </node>
+
 
  <!-- joy node -->
   <node respawn="false" pkg="joy" type="joy_node" name="joy" >
@@ -10,7 +14,6 @@
  <!-- Axes -->
 
   <node pkg="vrep_ros_teleop" type="teleop.py" name="teleop">
-      <!--<param name="axis_linear_x" value="1" type="int"/>-->
       <param name="axis_linear" value="1" type="int"/>
       <param name="axis_angular" value="0" type="int"/>
       <param name="scale_linear" value="1.5" type="double"/>
@@ -41,7 +44,6 @@
         <!-- While developing -->
         <param name="lib_path" value="$(find floor_nav)/../../devel/share/floor_nav/tasks"/>
         <param name="base_frame" value="bubbleRob"/>
-
         <param name="reference_frame" value="odom"/>
         <!-- <param name="reference_frame" value="map"/>-->
         <remap from="/scan" to="/vrep/hokuyo"/>
