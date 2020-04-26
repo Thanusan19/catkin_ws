@@ -15,6 +15,7 @@
 #include <nav_msgs/Path.h>
 #include <geometry_msgs/PoseStamped.h>
 #include <std_msgs/Float32.h>
+#include <math.h>
 
 
 #define FREE 0xFF
@@ -530,8 +531,8 @@ class OccupancyGridPlanner {
                 findFrontierPoints(og_);
                 cv::Point2i minTarget= frontierPointCloseToRobot(start);
                 ROS_INFO("minTarget: (%d, %d)",minTarget.x,minTarget.y);
-                t_yaw = 0;
-                target = cv::Point3i(minTarget.x, minTarget.y,0); //+ og_center_;
+                double alpha = remainder(atan2((minTarget.y-start.y),minTarget.x-start.x)-start.z,2*M_PI);// + M_PI
+                target = cv::Point3i(minTarget.x, minTarget.y,alpha+ M_PI); //+ og_center_; (unsigned int)round(alpha/(M_PI/4)) % 8 alpha
                 ROS_INFO("og_center : (%d , %d)",og_center_.x,og_center_.y);
             }
 
