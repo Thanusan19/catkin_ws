@@ -128,7 +128,7 @@ class BubbleSLAM:
 
             lasttf = m.header.stamp
 
-            self.listener.waitForTransform(self.body_frame,m.header.frame_id, lasttf, rospy.Duration(1.0))
+            self.listener.waitForTransform(self.body_frame,m.header.frame_id, lasttf, rospy.Duration(5.0))
 
             m_pose = PointStamped()
             m_pose.header = m.header
@@ -148,7 +148,7 @@ class BubbleSLAM:
         while not rospy.is_shutdown():
             now = rospy.Time.now()
             lasttf = now #rospy.Time(0)
-            self.listener.waitForTransform(self.odom_frame,self.body_frame, now, rospy.Duration(1.0))
+            self.listener.waitForTransform(self.odom_frame,self.body_frame, now, rospy.Duration(5.0))
             (trans,rot) = self.listener.lookupTransform(self.odom_frame,self.body_frame, lasttf)
             new_odom = mat(self.listener.fromTranslationRotation(trans,rot))
             euler = tf.transformations.euler_from_quaternion(rot);

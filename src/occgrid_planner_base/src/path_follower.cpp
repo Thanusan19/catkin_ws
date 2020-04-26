@@ -57,7 +57,8 @@ class PathFollower {
 
         geometry_msgs::Pose2D computeError(const ros::Time & now, const occgrid_planner_base::TrajectoryElement & te) {
             tf::StampedTransform transform;
-            listener_.waitForTransform(base_frame_,frame_id_,now,ros::Duration(1.0));
+            //ros::Duration(0.5).sleep();
+            listener_.waitForTransform(base_frame_,frame_id_,now,ros::Duration(2.0));
             geometry_msgs::PoseStamped pose,error;
             pose.header.stamp = now;
             pose.header.frame_id = frame_id_;
@@ -94,7 +95,7 @@ class PathFollower {
 
             //STEP5
             target_sub_ = nh_.subscribe("goal",1,&PathFollower::target_callback,this);
-            //target_pub_ = nh_.advertise<geometry_msgs::PoseStamped>("goal",1);
+            target_pub_ = nh_.advertise<geometry_msgs::PoseStamped>("goal",1);
 
 
         };
@@ -111,7 +112,7 @@ class PathFollower {
                 ros::spinOnce();
                 if (traj_.size() > 0) {
                     bool final = false;
-                    ros::Time now = ros::Time::now();
+                    ros::Time now = ros::Time::now(); //ros::Time(0); 
                     Trajectory::const_iterator it = traj_.lower_bound(now.toSec() + look_ahead_);
                     if (it == traj_.end()) {
                         // let's keep the final position
@@ -126,7 +127,7 @@ class PathFollower {
                     pose2d_pub_.publish(error);
                     geometry_msgs::Twist twist;
 
-                    if (final && (error.x < 0.2)) {
+                    if (final && (error.x < 0.1)) { //0.1
                         // Finished
                         twist.linear.x = 0.0;
                         twist.angular.z = 0.0;
@@ -143,9 +144,9 @@ class PathFollower {
                     twist_pub_.publish(twist);
 
                     //STEP5
-                    //if ((last_goal_time-ros::Time::now()).toSec()>5){
-                    //    target_pub_.publish(pose);
-                    //}
+                    if ((last_goal_time-ros::Time::now()).toSec()>5){
+                        target_pub_.publish(pose);
+                    }
 
 
                 } else {
