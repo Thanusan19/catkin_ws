@@ -23,6 +23,35 @@
 #define WIN_SIZE 800
 
 
+class SignalWifiManagement{
+    protected:
+        float signalWifi;
+        cv::Point3i robotPosition;
+    
+    public:
+        SignalWifiManagement(){
+            signalWifi=0;
+            robotPosition=cv::Point3i(0,0,0);
+        }
+
+        void setSignalWifi(float value){
+            signalWifi=value;
+        }
+
+        void setRobotPosition(cv::Point3i Position){
+            robotPosition=Position;
+        }
+
+        float getSignalWifi(){
+            return signalWifi;
+        }
+
+        cv::Point3i getRobotPosition(){
+            return robotPosition;
+        }
+
+};
+
 
 class OccupancyGridPlanner {
     protected:
@@ -30,6 +59,7 @@ class OccupancyGridPlanner {
         ros::Subscriber og_sub_;
         ros::Subscriber target_sub_;
         ros::Subscriber voltage_sub_; //Ajout monitoring battery
+        ros::Subscriber signal_sub_; //Signal subscriber
         ros::Publisher path_pub_;
         ros::Publisher goal_pub_; //project
         tf::TransformListener listener_;
@@ -37,7 +67,8 @@ class OccupancyGridPlanner {
 
         cv::Rect roi_;
         cv::Mat_<uint8_t> og_, cropped_og_;
-        cv::Mat_<cv::Vec3b> og_rgb_, og_rgb_marked_;
+        cv::Mat_<uint8_t> signalMap_, cropped_signal_;
+        cv::Mat_<cv::Vec3b> og_rgb_, og_rgb_marked_, signalMap__rgb_;
         cv::Point3i og_center_;
         std::vector<cv::Point2i> frontierPoints_;
         nav_msgs::MapMetaData info_;
@@ -48,8 +79,14 @@ class OccupancyGridPlanner {
         bool debug;
         double radius;
         float voltage_robot;//Ajout monitoring battery
+        float signal_wifi;
 
         typedef std::multimap<float, cv::Point3i> Heap;
+        //typedef std::multimap<float, cv::Point3i> SIGNAL_WIFI;
+
+        std::vector<SignalWifiManagement> signal_wifi_list;
+
+
 
         //Find and store all frontierPoints in a 1 dim vector
         void findFrontierPoints(cv::Mat_<uint8_t> og_){
@@ -122,6 +159,7 @@ class OccupancyGridPlanner {
             og_ = cv::Mat_<uint8_t>(msg->info.height, msg->info.width,0xFF);
             og_center_ = cv::Point3i(-info_.origin.position.x/info_.resolution,-info_.origin.position.y/info_.resolution,0);
 
+
             // Some variables to select the useful bounding box 
             unsigned int maxx=0, minx=msg->info.width, 
                          maxy=0, miny=msg->info.height;
@@ -150,9 +188,12 @@ class OccupancyGridPlanner {
                         maxx = std::max(maxx,i);
                         maxy = std::max(maxy,j);
                     }
+
+
                 }
             }
 
+            ROS_INFO("MSG height , width : %d , %d ",msg->info.height ,msg->info.width);
             //STEP 1 
 			double dilation_size =radius/info_.resolution;
 			cv::Mat element = getStructuringElement(cv::MORPH_ELLIPSE ,//cv::MORPH_RECT
@@ -167,14 +208,17 @@ class OccupancyGridPlanner {
                 ready = true;
                 ROS_INFO("Received occupancy grid, ready to plan");
             }
+
             // The lines below are only for display
             unsigned int w = maxx - minx;
             unsigned int h = maxy - miny;
             roi_ = cv::Rect(minx,miny,w,h);
             cv::cvtColor(og_, og_rgb_, CV_GRAY2RGB);
+            //cv::cvtColor(signalMap_, signalMap__rgb_, CV_GRAY2RGB);
             // Compute a sub-image that covers only the useful part of the
             // grid.
             cropped_og_ = cv::Mat_<uint8_t>(og_,roi_);
+            //cropped_signal_ = cv::Mat_<uint8_t>(og_,roi_);
             if ((w > WIN_SIZE) || (h > WIN_SIZE)) {
                 // The occupancy grid is too large to display. We need to scale
                 // it first.
@@ -188,10 +232,17 @@ class OccupancyGridPlanner {
                 cv::Mat_<uint8_t> resized_og;
                 cv::resize(cropped_og_,resized_og,new_size);
                 cv::imshow( "OccGrid", resized_og );
+
+                //cv::Mat_<uint8_t> resized_signalMap;
+                //cv::resize(cropped_signal_,resized_signalMap,new_size);
+                //cv::imshow( "SignalMap", resized_signalMap );
             } else {
                 // cv::imshow( "OccGrid", cropped_og_ );
                 cv::imshow( "OccGrid", og_rgb_ );
+                //cv::imshow( "SignalMap", signalMap__rgb_ );
             }
+
+
         }
 
 
@@ -450,12 +501,12 @@ class OccupancyGridPlanner {
                 ROS_WARN("Ignoring target while the occupancy grid has not been received");
                 return;
             }
-            /*ROS_INFO("Received planning request");
+            ROS_INFO("Received planning request");
             og_rgb_marked_ = og_rgb_.clone();
             // Convert the destination point in the occupancy grid frame. 
             // The debug case is useful is the map is published without
             // gmapping running (for instance with map_server).
-            if (debug) {
+            /*if (debug) {
                 pose = *msg;
             } else {
                 // This converts target in the grid frame.
@@ -496,7 +547,7 @@ class OccupancyGridPlanner {
                 cv::Point2i minTarget= frontierPointCloseToRobot(start);
                 ROS_INFO("Closest point to the Robot (%d %d)",minTarget.x,minTarget.y);
                 t_yaw = 0;
-                target = cv::Point3i(minTarget.x, minTarget.y,0)//manque une 3ème dimension
+                target = cv::Point3i(minTarget.x, minTarget.y,0)/10
                 + og_center_;
             }
 
@@ -506,9 +557,14 @@ class OccupancyGridPlanner {
             if (debug) {
                 start = og_center_;
             } 
-            ROS_INFO("Planning origin %.2f %.2f %.2f -> %d %d %d",
+            ROS_INFO("Planning origin %.2f %.2fog_ %.2f -> %d %d %d",
                     info_.origin.position.x, info_.origin.position.y,s_yaw, start.x, start.y,start.z);
            
+            cv::circle(og_rgb_marked_,point3iToPoint(start), 10, cv::Scalar(0,255,0));
+            cv::imshow( "OccGrid", og_rgb_marked_ );
+                                    
+            cv::circle(og_rgb_marked_,point3iToPoint(target), 10, cv::Scalar(0,0,255));
+            cv::imshow( "OccGrid", og_rgb_marked_ );
 
             if (!isInGrid(start)) {
                 ROS_ERROR("Invalid starting point (%.2f %.2f %.2f) -> (%d %d %d)",
@@ -522,8 +578,7 @@ class OccupancyGridPlanner {
                 return;
             }
 
-
-
+            ROS_INFO("Resolution % 2f ",info_.resolution);
             ROS_INFO("Starting planning from (%d, %d %d) to (%d, %d %d)",start.x,start.y,start.z, target.x, target.y,target.z);
             // Here the Dijskstra algorithm starts 
             // The best distance to the goal computed so far. This is
@@ -657,6 +712,84 @@ class OccupancyGridPlanner {
             voltage_robot = msg->data;
         }
 
+        void signal_callback(const std_msgs::Float32ConstPtr & msg) {
+            signal_wifi = msg->data;
+            //signal_wifi = static_cast<int>(signal_wifi*100);
+            signal_wifi=signal_wifi*100;
+            ROS_INFO("SIGNAL = %f",signal_wifi);
+
+            int width=og_.size().width;
+            int height=og_.size().height;
+
+            if (!ready) {
+                ROS_WARN("Ignoring target while the occupancy grid has not been received");
+                return;
+            }
+            ROS_INFO("Received planning request");
+
+            cv::Point3i start;
+            double s_yaw = 0;
+
+            tf::StampedTransform transform;
+            // this gets the current pose in transform
+            listener_.lookupTransform(frame_id_,base_link_, ros::Time(0), transform);
+
+            s_yaw = tf::getYaw(transform.getRotation()) + M_PI;
+            start = cv::Point3i(transform.getOrigin().x() / info_.resolution, transform.getOrigin().y() / info_.resolution,(unsigned int)round(s_yaw/(M_PI/4)) % 8)//manque une 3ème dimension
+                    + og_center_;
+
+            ROS_INFO("Actuel position = %d %d",transform.getOrigin().x() / info_.resolution,transform.getOrigin().y() / info_.resolution);
+
+            //Create singal map
+            //signalMap_=cv::Mat_<uint8_t>(height, width,0xFF);
+
+            //for (unsigned int j=0;j<height;j++) {
+                //for (unsigned int i=0;i<width;i++) {
+            //Set signal value in a 10 unit radius
+                    //uint8_t u_signalWifi=signal_wifi;
+                    //signalMap_(j,i)=  u_signalWifi;
+                    //ROS_INFO("SIGNALMAP value = %2f",u_signalWifi);
+
+                //}
+            //}
+
+            //Display
+
+            //SIGNAL_WIFI signal_wifi_point;
+            //signal_wifi_point.insert(Heap::value_type(signal_wifi,start));
+            //signal_wifi_list.push_back(signal_wifi_point);
+
+            SignalWifiManagement signalWifiManagement;
+            signalWifiManagement.setRobotPosition(start);
+
+            signalWifiManagement.setSignalWifi(signal_wifi);
+
+            signal_wifi_list.push_back(signalWifiManagement);
+
+            
+            signalMap_=cv::Mat_<uint8_t>(height, width,0xFF);
+            cv::cvtColor(signalMap_, signalMap__rgb_, CV_GRAY2RGB);
+            //signalMap__rgb_ = og_rgb_.clone();
+            //cv::cvtColor(signalMap_, signalMap__rgb_, CV_BGR2Luv);
+            for (size_t i = 0; i < signal_wifi_list.size(); i++)
+            {
+                cv::Point3i robotPosition = signal_wifi_list[i].getRobotPosition();
+                float signal=signal_wifi_list[i].getSignalWifi();
+                signal=static_cast<int>(signal);
+
+                if(signal<30){
+                    cv::circle(signalMap__rgb_,point3iToPoint(robotPosition), 10, cv::Scalar(signal,0,0),CV_FILLED);
+                }else if(signal>70){
+                    cv::circle(signalMap__rgb_,point3iToPoint(robotPosition), 10, cv::Scalar(0,signal,0),CV_FILLED);
+                }else{
+                    cv::circle(signalMap__rgb_,point3iToPoint(robotPosition), 10, cv::Scalar(0,0,signal),CV_FILLED);
+                }
+            }
+            
+            cv::imshow( "SignalMap", signalMap__rgb_ );
+            //cv::imshow( "SignalMap", signalMap__rgb_ );
+
+        }
 
 
 
@@ -679,8 +812,11 @@ class OccupancyGridPlanner {
             }
             og_sub_ = nh_.subscribe("occ_grid",1,&OccupancyGridPlanner::og_callback,this);
             target_sub_ = nh_.subscribe("goal",1,&OccupancyGridPlanner::target_callback,this);
-            voltage_sub_ = nh_.subscribe("voltage",1,&OccupancyGridPlanner::voltage_callback,this); //Ajout subscribe voltage
+            //Project step
+            voltage_sub_ = nh_.subscribe("voltage",1,&OccupancyGridPlanner::voltage_callback,this); //subscribe vrep/voltage
+            signal_sub_ = nh_.subscribe("/vrep/signal",1,&OccupancyGridPlanner::signal_callback,this); //subscribe vrep/signal
             path_pub_ = nh_.advertise<nav_msgs::Path>("path",1,true);
+<<<<<<< HEAD
             //Project
             ros::Duration(0.5).sleep();
             timer = nh_.createTimer(ros::Duration(1/20), &OccupancyGridPlanner::timer_callback,this);        
@@ -718,6 +854,10 @@ class OccupancyGridPlanner {
             goal_pub_.publish(pose);
             ROS_INFO("Timer callback test");
 
+=======
+            ros::Duration(0.5).sleep();
+            timer = nh_.createTimer(ros::Duration(5), &OccupancyGridPlanner::timer_callback,this);        
+>>>>>>> 9defd9d6d5ae1b0a7c961918fcffd0ef1bd7a672
 
         }
 
