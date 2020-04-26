@@ -99,7 +99,7 @@ class OccupancyGridPlanner {
                 for (size_t j = 0; j < width; j++)
                 {
                     if((og_(i,j)==FREE) && ((og_(i-1,j)==OCCUPIED) || (og_(i-1,j-1)==OCCUPIED) || (og_(i-1,j+1)==OCCUPIED) || (og_(i,j-1)==OCCUPIED)
-                        || (og_(i,j+1)==OCCUPIED) || (og_(i+1,j)==OCCUPIED) || (og_(i+1,j-11)==OCCUPIED) || (og_(i+1,j+1)==OCCUPIED) ))
+                        || (og_(i,j+1)==OCCUPIED) || (og_(i+1,j)==OCCUPIED) || (og_(i+1,j-1)==OCCUPIED) || (og_(i+1,j+1)==OCCUPIED) ))
                         {
                             cv::Point2i frontierPoint;
                             frontierPoint=cv::Point2i(i,j);
@@ -816,48 +816,8 @@ class OccupancyGridPlanner {
             voltage_sub_ = nh_.subscribe("voltage",1,&OccupancyGridPlanner::voltage_callback,this); //subscribe vrep/voltage
             signal_sub_ = nh_.subscribe("/vrep/signal",1,&OccupancyGridPlanner::signal_callback,this); //subscribe vrep/signal
             path_pub_ = nh_.advertise<nav_msgs::Path>("path",1,true);
-<<<<<<< HEAD
-            //Project
-            ros::Duration(0.5).sleep();
-            timer = nh_.createTimer(ros::Duration(1/20), &OccupancyGridPlanner::timer_callback,this);        
-            //goal_pub_ = nh_.advertise<geometry_msgs::PoseStamped>("goal",1,true);
-
-        }
-        void timerCallback(const ros::TimerEvent& e)
-        {
-            /****************************************************************************/
-            /*PROJECT:Store frontier points in a list and find closest poit to the Robot*/
-            /****************************************************************************/
-            cv::Point3i start;
-            double s_yaw = 0;
-
-            tf::StampedTransform transform;
-            // this gets the current pose in transform
-            listener_.lookupTransform(frame_id_,base_link_, ros::Time(0), transform);
-
-            s_yaw = tf::getYaw(transform.getRotation()) + M_PI;
-            start = cv::Point3i(transform.getOrigin().x() / info_.resolution, transform.getOrigin().y() / info_.resolution,(unsigned int)round(s_yaw/(M_PI/4)) % 8)//manque une 3ème dimension
-                    + og_center_;
-
-            findFrontierPoints(og_);
-            cv::Point2i minTarget= frontierPointCloseToRobot(start);
-            ROS_INFO("Closest point to the Robot (%d %d)",minTarget.x,minTarget.y);
-
-            //Publish Goal
-            geometry_msgs::PoseStamped pose;
-            //pose.header=ros::Time::now();
-            pose.pose.position.x=minTarget.x * info_.resolution;
-            pose.pose.position.y=minTarget.y * info_.resolution;
-            tf::Quaternion q = tf::createQuaternionFromRPY(0,0,s_yaw);
-            tf::quaternionTFToMsg(q, pose.pose.orientation);
-
-            goal_pub_.publish(pose);
-            ROS_INFO("Timer callback test");
-
-=======
             ros::Duration(0.5).sleep();
             timer = nh_.createTimer(ros::Duration(5), &OccupancyGridPlanner::timer_callback,this);        
->>>>>>> 9defd9d6d5ae1b0a7c961918fcffd0ef1bd7a672
 
         }
 
